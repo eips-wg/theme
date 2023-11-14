@@ -41,6 +41,20 @@
 			href="{{ get_url(path='/assets/css/style.css', trailing_slash=false) }}"
 		/>
 
+		{% if config.markdown.highlight_code and config.markdown.highlight_theme == "css" %}
+		<link
+			rel="stylesheet"
+			type="text/css"
+			href="{{ get_url(path='/assets/css/syntax-theme-dark.css', trailing_slash=false) }}"
+			media="(prefers-color-scheme: dark)" />
+
+		<link
+			rel="stylesheet"
+			type="text/css"
+			href="{{ get_url(path='/assets/css/syntax-theme-light.css', trailing_slash=false) }}"
+			media="(prefers-color-scheme: light)" />
+		{% endif %}
+
 		{% if config.generate_feed %}
 		<link
 			rel="alternate"
@@ -149,8 +163,82 @@
 					href="{{ get_url(path='/', trailing_slash=false) }}"
 					>{{ config.title }}</a
 				>
+				{%- if config.extra.working_groups or config.taxonomies -%}
+				<nav class="site-nav d-flex">
+					<input aria-label="Toggle Navigation" type="checkbox" id="nav-trigger" class="nav-trigger" />
+					<label for="nav-trigger">
+						<span class="menu-icon">
+							<svg viewBox="0 0 18 15" width="18px" height="15px">
+								<path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+							</svg>
+						</span>
+					</label>
+
+					<div class="trigger row p-2">
+						{% if config.extra.working_groups %}
+						<span>
+						{%- for working_group in config.extra.working_groups -%}
+						<a class="page-link col" href="{{ working_group.url }}">
+							{{- working_group.name -}}
+						</a>
+						{%- endfor -%}
+						</span>
+						{%- endif -%}
+						{%- if config.extra.working_groups and config.taxonomies -%}
+						<hr>
+						{%- endif -%}
+						{%- if config.taxonomies -%}
+						<span>
+							{% for taxonomy in config.taxonomies %}
+							{% set taxonomy_detail = get_taxonomy(kind=taxonomy.name) %}
+							<a class="page-link col" href="{{ taxonomy_detail.permalink }}">
+								{{ taxonomy.name | title }}
+							</a>
+							{% endfor %}
+						</span>
+						{%- endif %}
+					</div>
+				</nav>
+				{%- endif -%}
 			</div>
 		</header>
-		{% endblock nav %} {% block content %} {% endblock content %}
+		{% endblock nav %}
+
+		<main class="page-content" aria-label="Content">
+			<div class="wrapper">
+				{% block content %} {% endblock content %}
+			</div>
+		</main>
+		<footer class="site-footer h-card">
+			<data class="u-url" href="{{ get_url(path="/") }}"></data>
+
+			<div class="wrapper">
+
+				<div class="footer-col-wrapper">
+					<div class="footer-col">
+						{% if config.generate_feed %}
+						<p class="feed-subscribe">
+							<a href="{{ get_url(path=config.feed_filename) | safe }}">
+								<svg class="svg-icon orange">
+									<use xlink:href="{{ get_url(path='/assets/images/rss.svg') }}#rss"></use>
+								</svg><span>Subscribe</span>
+							</a>
+						</p>
+						{% endif %}
+						{%- if config.author %}
+						<ul class="contact-list">
+							<li class="p-name">{{ config.author }}</li>
+						</ul>
+						{%- endif %}
+					</div>
+					{% if config.description %}
+					<div class="footer-col">
+						<p>{{ config.description }}</p>
+					</div>
+					{% endif %}
+				</div>
+			</div>
+
+		</footer>
 	</body>
 </html>

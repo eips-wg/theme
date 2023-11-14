@@ -1,0 +1,19 @@
+{% if page.extra.author_details %}
+{% for author in page.extra.author_details %}
+{% if author.github or author.email %}<address class="author">{% endif %}
+	{{ author.name }}
+	{% if author.github -%}
+	(<a rel="author" href="https://github.com/{{ author.github }}">@{{ author.github }}</a>)
+	{%- endif -%}
+	{%- if author.email %}
+	&lt;<a rel="author" href="mailto:{{ author.email }}">{{ author.email }}</a>&gt;
+	{%- endif -%}
+{%- if author.github or author.email -%}</address>{%- endif -%}
+{%- if not loop.last -%},{%- endif %}
+{% endfor %}
+{% elif page.authors %}
+{% for author in page.authors %}
+{{ author }}
+{%- if not loop.last -%},{%- endif %}
+{% endfor %}
+{% endif %}

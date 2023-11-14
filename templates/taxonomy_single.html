@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{- taxonomy.name | title }}: {{ term.name | title }} | {{ config.title -}}
+{% endblock title %}
+
+{% block content %}
+<article>
+	<h1 class="page-heading">{{ taxonomy.name | title }}: {{ term.name | title }}</h1>
+	{% include "includes/eiptable.html" %}
+</article>
+{% endblock content %}

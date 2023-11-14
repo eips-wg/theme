@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{- taxonomy.name | title }} | {{ config.title -}}
+{% endblock title %}
+
+{% block content %}
+<h1 class="page-heading">Proposals by {{ taxonomy.name | capitalize }}</h1>
+{% for term in terms %}
+<article>
+	<h2 id="{{ term.slug }}"><a href="{{ term.permalink }}">{{ term.name }}</a></h2>
+
+	{% include "includes/eiptable.html" %}
+</article>
+{% endfor %}
+{% endblock content %}

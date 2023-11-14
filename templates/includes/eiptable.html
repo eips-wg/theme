@@ -1,0 +1,39 @@
+<table class="eiptable">
+	<thead>
+		<tr>
+			<th scope="col" class="eipnum">Number</th>
+			<th scope="col" class="title">Title</th>
+			<th scope="col" class="author">Author(s)</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% set sorted_pages = term.pages|sort(attribute="extra.number") %}
+		{% for page in sorted_pages %}
+		<tr>
+			<th scope="row" class="eipnum">
+				<a href="{{ page.permalink }}">
+					{% if page.extra.number %}
+					{{ page.extra.number }}
+					{% else -%}
+					-
+					{%- endif %}
+				</a>
+			</th>
+			<td class="title" id="title-{{ page.slug }}-{{ loop.index }}">
+				{{ page.title }}
+			</td>
+			<td class="author">
+				<article aria-labelledby="title-{{ page.slug }}-{{ loop.index }}">
+				{#
+					TODO: Technically the whole row should be the article,
+					not just the author list. Could be possible with
+					`display: table` and friends, but that's a lot of
+					styling.
+				#}
+				{% include "includes/authorlist.html" %}
+				</article>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>

@@ -1,0 +1,273 @@
+{% extends "page.html" %}
+
+{% block extra_head %}
+<meta property="og:type" content="article" />
+
+{% if page.title %}
+<meta property="og:title" content="{{ page.title }} | {{ config.title }}" />
+{% endif %}
+{% if page.description %}
+<meta property="og:description" content="{{ page.description }}" />
+<meta name="twitter:description" content="{{ page.description }}" />
+<meta name="description" content="{{ page.description }}" />
+{% endif %}
+{% if page.date %}
+<meta property="article:published_time" content="{{ page.date }}" />
+{% endif %}
+{% if page.updated %}
+<meta property="article:modified_time" content="{{ page.updated }}" />
+{% endif %}
+{% if page.extra.author_details %}
+{% for author in page.extra.author_details %}
+{% if author.github %}
+<meta
+	property="article:author"
+	content="https://github.com/{{ author.github }}"
+/>
+{% elif author.email %}
+{# TODO: Verify that mailto links don't break anything. #}
+<meta property="article:author" content="mailto:{{ author.email }}" />
+{% endif %}
+{% endfor %}
+{% endif %}
+
+<script type="application/ld+json">
+	{
+		{#
+			schema.org has `TechArticle`, which lists "specification" as an example.
+			`TechArticle` is a sub-type of `Article`, and `Article` is supported
+			by Google, so this makes sense I think.
+		#}
+
+		"@type": "Article",
+		"url": "{{ current_url | safe }}",
+		"name": "{{ page.title }}",
+		"description": "{{ page.description }}",
+	{% if page.date %}
+		"dateCreated": "{{ page.date }}",
+	{% endif %}
+	{% if page.updated %}
+		"dateModified": "{{ page.updated }}",
+	{% endif %}
+	{% if page.extra.author_details %}
+		"author": [
+	{% for author in page.extra.author_details %}
+			{
+				"@type": "Person",
+				"name": "{{ author.name }}"
+	{%- if author.github -%}
+				,
+				"url": "https://github.com/{{ author.github }}"
+	{%- endif -%}
+	{%- if author.email -%}
+				,
+				"email": "{{ author.email }}"
+	{% endif %}
+			}
+	{%- if not loop.last -%}
+			,
+	{%- endif %}
+	{% endfor %}
+		],
+	{% endif %}
+	{% if page.extra.discussions_to %}
+		"discussionUrl": "{{ page.extra.discussions_to | safe }}",
+	{% endif %}
+	    "license": "#copyright",
+	{% if page.date %}
+	    "copyrightYear": "{{ page.date | date(format="%Y") }}"
+	{% endif %}
+		"@context": "https://schema.org"
+	}
+</script>
+{% endblock extra_head %}
+{% block content %}
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+	<symbol id="bi-megaphone-fill" fill="currentColor" viewBox="0 0 16 16">
+		<title>Alert</title>
+		<path
+			d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0v-11zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25.222 25.222 0 0 1 1.088.085c2.053.204 4.038.668 5.912 1.56V3.224zm-8 7.841V4.934c-.68.027-1.399.043-2.008.053A2.02 2.02 0 0 0 0 7v2c0 1.106.896 1.996 1.994 2.009a68.14 68.14 0 0 1 .496.008 64 64 0 0 1 1.51.048zm1.39 1.081c.285.021.569.047.85.078l.253 1.69a1 1 0 0 1-.983 1.187h-.548a1 1 0 0 1-.916-.599l-1.314-2.48a65.81 65.81 0 0 1 1.692.064c.327.017.65.037.966.06z"
+		/>
+	</symbol>
+	<symbol id="bi-code" fill="currentColor" viewBox="0 0 16 16">
+		<title>Source</title>
+		<path
+			d="M5.854 4.854a.5.5 0 1 0-.708-.708l-3.5 3.5a.5.5 0 0 0 0 .708l3.5 3.5a.5.5 0 0 0 .708-.708L2.707 8l3.147-3.146zm4.292 0a.5.5 0 0 1 .708-.708l3.5 3.5a.5.5 0 0 1 0 .708l-3.5 3.5a.5.5 0 0 1-.708-.708L13.293 8l-3.147-3.146z"
+		/>
+	</symbol>
+	<svg id="bi-chat" fill="currentColor" viewBox="0 0 16 16">
+		<title>Discuss</title>
+		<path
+			d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"
+		/>
+	</svg>
+</svg>
+
+<article class="home">
+	<span class="h5">
+		{% if page.extra.status %} {% if page.extra.status == "Stagnant" %}
+		<span
+			class="badge text-light bg-danger"
+			data-bs-toggle="tooltip"
+			data-bs-title="This EIP had no activity for at least 6 months. This EIP should not be used."
+			>🚧 Stagnant</span
+		>
+		{% elif page.extra.status == "Withdrawn" %}
+		<span
+			class="badge text-light bg-danger"
+			data-bs-toggle="tooltip"
+			data-bs-title="This EIP has been withdrawn, and should not be used."
+			>🛑 Withdrawn</span
+		>
+		{% elif page.extra.status == "Draft" or page.extra.status == "Review" %}
+		<span
+			class="badge text-light bg-warning"
+			data-bs-toggle="tooltip"
+			data-bs-title="This EIP is not yet recommended for general use or implementation, as it is subject to normative (breaking) changes."
+			>⚠️ {{ page.extra.status }}</span
+		>
+		{% elif page.extra.status == "Last Call" %}
+		<span
+			class="badge text-light bg-success"
+			data-bs-toggle="tooltip"
+			data-bs-title="This EIP is in the last call for review stage. The authors wish to finalize the EIP and ask you to provide feedback."
+			>📢 Last Call</span
+		>
+		{% endif %} {% endif %}
+	</span>
+	<h1 class="page-heading">
+		{% if config.extra.eip_prefix -%} {{- config.extra.eip_prefix -}} {%-
+		else -%} EIP- {%- endif -%} {{- page.extra.number -}}: {{ page.title }}
+		{% if page.extra.discussions_to %}
+		<a href="{{ page.extra.discussions_to }}" class="no-underline">
+			<svg
+				role="img"
+				aria-label="Discuss"
+				class="inline-svg"
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 16 16"
+			>
+				<use xlink:href="#bi-chat" />
+			</svg>
+		</a>
+		{% endif %} {% if config.extra.github.repository_url %}
+		<a
+			href="{{ config.extra.github.repository_url }}/blob/master/content/{{ page.relative_path }}"
+			class="no-underline"
+		>
+			<svg
+				role="img"
+				aria-label="Source"
+				class="inline-svg"
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 16 16"
+			>
+				<use xlink:href="#bi-code" />
+			</svg>
+		</a>
+		{% endif %}
+	</h1>
+	<h3>{{ page.description }}</h3>
+	<table class="table table-borderless preamble">
+		<tbody>
+			<tr>
+				<th scope="row">Authors</th>
+				<td>{% include "includes/authorlist.html" %}</td>
+			</tr>
+			{% if page.date %}
+			<tr>
+				<th scope="row">Created</th>
+				<td>{{ page.date }}</td>
+			</tr>
+			{% endif %} {% if page.extra.last_call_deadline %}
+			<tr>
+				<th scope="row">Last Call Deadline</th>
+				<td>{{ page.extra.last_call_deadline }}</td>
+			</tr>
+			{% endif %} {% if page.extra.discussions_to %}
+			<tr>
+				<th scope="row">Discussion Link</th>
+				<td>
+					<a href="{{ page.extra.discussions_to }}" target="__blank"
+						>{{ page.extra.discussions_to }}</a
+					>
+				</td>
+			</tr>
+			{% endif %} {% if page.extra.requires %}
+			<tr>
+				<th scope="row">Requires</th>
+				<td>
+					{% for required in page.extra.requires -%}
+					<a href="https://eips.fyi/{{ required }}">
+					{{- required -}}
+					</a>
+					{%- if not loop.last %}, {% endif -%}
+					{%- endfor %}
+				</td>
+			</tr>
+			{% endif %}
+		</tbody>
+	</table>
+	<br />
+
+	{% if page.extra.status == "Review" or page.extra.status == "Last Call" %}
+	<div class="alert alert-primary d-flex align-items-center" role="alert">
+		<svg
+			class="bi flex-shrink-0 me-2"
+			role="img"
+			aria-label="Info:"
+			style="width: 2.5em; height: 2.5em"
+		>
+			<use xlink:href="#bi-megaphone-fill" />
+		</svg>
+		<div class="text-center w-100">
+			<a href="{{ page.extra.discussions_to }}" target="__blank"
+				>This EIP is in the process of being peer-reviewed. If you are
+				interested in this EIP, please participate using this discussion
+				link.</a
+			>
+		</div>
+	</div>
+	{% endif %}
+
+	<div class="toc">
+		<h2>Table of Contents</h2>
+		{% if page.toc %}
+		<ul>
+			{% for h1 in page.toc %}
+			<li>
+				<a href="{{ h1.permalink | safe }}">{{ h1.title }}</a>
+				{% if h1.children %}
+				<ul>
+					{% for h2 in h1.children %}
+					<li>
+						<a href="{{ h2.permalink | safe }}">{{ h2.title }}</a>
+					</li>
+					{% endfor %}
+				</ul>
+				{% endif %}
+			</li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+	</div>
+
+	{{ page.content | safe }}
+	<h2>Citation</h2>
+	<p>Please cite this document as:</p>
+	{# IEEE specification for reference formatting:
+	https://ieee-dataport.org/sites/default/files/analysis/27/IEEE%20Citation%20Guidelines.pdf
+	#}
+	<div>
+		{%- for author in page.authors -%} {{- author -}} {% if not loop.last
+		-%}, {% endif -%} {%- endfor -%}, "{% if config.extra.eip_prefix -%} {{-
+		config.extra.eip_prefix -}} {%- else -%} EIP- {%- endif -%} {{-
+		page.extra.number -}}: {{ page.title }},"
+		<em>Ethereum Improvement Proposals</em>, no. {{ page.extra.number }}{%
+		if page.draft %}, early access{% endif %}{% if page.date %}, {{
+		page.date | date(format="%B %Y") }}{% endif %}. [Online serial].
+		Available: {{ current_url }}.
+	</div>
+</article>
+{% endblock content %}
