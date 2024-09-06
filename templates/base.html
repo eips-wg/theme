@@ -55,14 +55,14 @@
 			media="(prefers-color-scheme: light)" />
 		{% endif %}
 
-		{% if config.generate_feed %}
+		{% for feed_filename in config.feed_filenames %}
 		<link
 			rel="alternate"
-			type="{% if config.feed_filename == 'atom.xml' %}application/atom+xml{% else %}application/rss+xml{% endif %}"
+			type="{% if feed_filename == 'atom.xml' %}application/atom+xml{% else %}application/rss+xml{% endif %}"
 			title="RSS"
-			href="{{ get_url(path=config.feed_filename) | safe }}"
+			href="{{ get_url(path=feed_filename) | safe }}"
 		/>
-		{% endif %}
+		{% endfor %}
 		<link
 			href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
 			rel="stylesheet"
@@ -73,7 +73,6 @@
 			rel="stylesheet"
 			href="{{ get_url(path='/assets/css/override.css', trailing_slash=false) }}"
 		/>
-		<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 		<script
 			src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
 			integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
@@ -216,15 +215,21 @@
 
 				<div class="footer-col-wrapper">
 					<div class="footer-col">
-						{% if config.generate_feed %}
+						{% for feed_filename in config.feed_filenames %}
 						<p class="feed-subscribe">
-							<a href="{{ get_url(path=config.feed_filename) | safe }}">
+							<a href="{{ get_url(path=feed_filename) | safe }}">
 								<svg class="svg-icon orange">
 									<use xlink:href="{{ get_url(path='/assets/images/rss.svg') }}#rss"></use>
-								</svg><span>Subscribe</span>
+								</svg><span>Subscribe (
+								{%- if feed_filename == 'atom.xml' -%}
+									Atom
+								{%- else -%}
+									<code>{{ feed_filename }}</code>
+								{%- endif -%}
+								)</span>
 							</a>
 						</p>
-						{% endif %}
+						{% endfor %}
 						{%- if config.author %}
 						<ul class="contact-list">
 							<li class="p-name">{{ config.author }}</li>
