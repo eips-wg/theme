@@ -10,7 +10,9 @@
     {%- endif %}
     <link href="{{ feed_url | safe }}" rel="self" type="application/atom+xml"/>
     <link rel="alternate" type="text/html" href="
-      {%- if section -%}
+      {%- if term -%}
+        {{ term.permalink | escape_xml | safe }}
+      {%- elif section -%}
         {{ section.permalink | escape_xml | safe }}
       {%- else -%}
         {{ config.base_url | escape_xml | safe }}
@@ -56,7 +58,7 @@
         {% if page.summary %}
         <summary type="html">{{ page.summary }}</summary>
         {% else %}
-        <content type="html">{{ page.content }}</content>
+        <content type="html"  xml:base="{{ page.permalink | escape_xml | safe }}">{{ page.content }}</content>
         {% endif %}
     </entry>
     {%- endfor %}
