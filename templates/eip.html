@@ -199,8 +199,10 @@
 				<th scope="row">Requires</th>
 				<td>
 					{% for required in page.extra.requires -%}
-					<a href="https://eips.fyi/{{ required }}">
-					{{- required -}}
+					{% set path = required | trim_start_matches(pat="@/") %}
+					{% set page = get_page(path=path) %}
+					<a href="{{ get_url(path=required) }}" title="{{ page.title }}">
+					{{- page.slug -}}
 					</a>
 					{%- if not loop.last %}, {% endif -%}
 					{%- endfor %}
