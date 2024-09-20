@@ -15,7 +15,7 @@ type = ["Standards Track"]
 
 [extra]
 type = "Standards Track"
-requires = [20, 721, 1155]
+requires = ["@/07201.md"]
 discussions_to = "https://ethereum-magicians.org/t/eip-3475-multiple-callable-bonds-standard/8691"
 status = "Final"
 category = "ERC"

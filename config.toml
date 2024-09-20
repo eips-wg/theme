@@ -16,7 +16,7 @@ taxonomies = [
     { name = "type", feed = true },
 ]
 
-generate_feed = true
+generate_feeds = true
 
 [link_checker]
 internal_level = "warn"
@@ -32,28 +32,6 @@ highlight_themes_css = [
     { theme = "base16-ocean-dark", filename = "assets/css/syntax-theme-dark.css" },
     { theme = "base16-ocean-light", filename = "assets/css/syntax-theme-light.css" },
 ]
-
-extra_syntaxes_and_themes = [
-    "syntaxes/solidity",
-]
-
-[extra]
-
-[[extra.working_groups]]
-name = "Core"
-url = "http://127.0.0.1:1111/"
-
-[[extra.working_groups]]
-name = "ERCs"
-url = "https://ercs.eips.fyi/"
-
-[[extra.working_groups]]
-name = "Governance"
-url = "https://eips.eips.fyi/"
-
-[[extra.working_groups]]
-name = "Wallets"
-url = "https://wallets.eips.fyi/"
 
 [extra.github]
 repository_url = "https://github.com/eips-wg/eips-theme"
