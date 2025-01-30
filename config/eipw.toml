@@ -1,0 +1,5 @@
+[fetch]
+proposal-format = "{:05}"
+
+[lints.preamble-file-name]
+format = "{:05}"
