@@ -1,5 +1,9 @@
-title = "Ethereum Improvement Proposals: @@working-group@@"
-description = "Ethereum Improvement Proposal (EIP): @@working-group@@."
+title = "Ethereum Improvement Proposals"
+description = """\
+Ethereum Improvement Proposals (EIPs & ERCs) describe standards for the \
+Ethereum platform, such as core protocol changes and application-level \
+standards.\
+"""
 
 theme = "eips-theme"
 
@@ -47,6 +51,8 @@ extra_syntaxes_and_themes = [
 bottom_footnotes = true
 
 [extra]
+google_site_verification = "RgkqLC0fdJob232LgA5o7qUs7l1C3b2r1JKWcDlWOFI"
+msvalidate = "E0C4C0C98D96DD251F246B52E434B0E9"
 
 [extra.github]
 repository_url = "https://github.com/eips-wg/@@slug@@"
