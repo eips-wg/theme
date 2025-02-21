@@ -50,6 +50,15 @@
 	{% if page.updated %}
 		"dateModified": "{{ page.updated }}",
 	{% endif %}
+	{% if page.extra.status %}
+		{% if page.extra.status == "Withdrawn" %}
+		"creativeWorkStatus": "Obsolete",
+		{% elif page.extra.status == "Final" %}
+		"creativeWorkStatus": "Published",
+		{% else %}
+		"creativeWorkStatus": "Draft",
+		{% endif %}
+	{% endif %}
 	{% if page.extra.author_details %}
 		"author": [
 	{% for author in page.extra.author_details %}
@@ -106,135 +115,139 @@
 </svg>
 
 <article class="home">
-	<span class="h5">
-		{% if page.extra.status %} {% if page.extra.status == "Stagnant" %}
-		<span
-			class="badge text-light bg-danger"
-			data-bs-toggle="tooltip"
-			data-bs-title="This EIP had no activity for at least 6 months. This EIP should not be used."
-			>🚧 Stagnant</span
-		>
-		{% elif page.extra.status == "Withdrawn" %}
-		<span
-			class="badge text-light bg-danger"
-			data-bs-toggle="tooltip"
-			data-bs-title="This EIP has been withdrawn, and should not be used."
-			>🛑 Withdrawn</span
-		>
-		{% elif page.extra.status == "Draft" or page.extra.status == "Review" %}
-		<span
-			class="badge text-light bg-warning"
-			data-bs-toggle="tooltip"
-			data-bs-title="This EIP is not yet recommended for general use or implementation, as it is subject to normative (breaking) changes."
-			>⚠️ {{ page.extra.status }}</span
-		>
-		{% elif page.extra.status == "Last Call" %}
-		<span
-			class="badge text-light bg-success"
-			data-bs-toggle="tooltip"
-			data-bs-title="This EIP is in the last call for review stage. The authors wish to finalize the EIP and ask you to provide feedback."
-			>📢 Last Call</span
-		>
-		{% endif %} {% endif %}
-	</span>
-	<h1 class="page-heading">
-		{% if config.extra.eip_prefix -%} {{- config.extra.eip_prefix -}} {%-
-		else -%} EIP- {%- endif -%} {{- page.extra.number -}}: {{ page.title }}
-		{% if page.extra.discussions_to %}
-		<a href="{{ page.extra.discussions_to }}" class="no-underline">
-			<svg
-				role="img"
-				aria-label="Discuss"
-				class="inline-svg"
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 16 16"
-			>
-				<use xlink:href="#bi-chat" />
-			</svg>
-		</a>
-		{% endif %} {% if config.extra.github.repository_url %}
-		<a
-			href="{{ config.extra.github.repository_url }}/blob/master/content/{{ page.relative_path }}"
-			class="no-underline"
-		>
-			<svg
-				role="img"
-				aria-label="Source"
-				class="inline-svg"
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 16 16"
-			>
-				<use xlink:href="#bi-code" />
-			</svg>
-		</a>
-		{% endif %}
-	</h1>
-	<h3>{{ page.description }}</h3>
-	<table class="table table-borderless preamble">
-		<tbody>
-			<tr>
-				<th scope="row">Authors</th>
-				<td>{% include "includes/authorlist.html" %}</td>
-			</tr>
-			{% if page.date %}
-			<tr>
-				<th scope="row">Created</th>
-				<td>{{ page.date }}</td>
-			</tr>
-			{% endif %} {% if page.extra.last_call_deadline %}
-			<tr>
-				<th scope="row">Last Call Deadline</th>
-				<td>{{ page.extra.last_call_deadline }}</td>
-			</tr>
-			{% endif %} {% if page.extra.discussions_to %}
-			<tr>
-				<th scope="row">Discussion Link</th>
-				<td>
-					<a href="{{ page.extra.discussions_to }}" target="__blank"
-						>{{ page.extra.discussions_to }}</a
+	<header>
+		<hgroup>
+			<p class="h5">
+				{% if page.extra.status %} {% if page.extra.status == "Stagnant" %}
+				<span
+					class="badge text-light bg-danger"
+					data-bs-toggle="tooltip"
+					data-bs-title="This EIP had no activity for at least 6 months. This EIP should not be used."
+					>🚧 Stagnant</span
+				>
+				{% elif page.extra.status == "Withdrawn" %}
+				<span
+					class="badge text-light bg-danger"
+					data-bs-toggle="tooltip"
+					data-bs-title="This EIP has been withdrawn, and should not be used."
+					>🛑 Withdrawn</span
+				>
+				{% elif page.extra.status == "Draft" or page.extra.status == "Review" %}
+				<span
+					class="badge text-light bg-warning"
+					data-bs-toggle="tooltip"
+					data-bs-title="This EIP is not yet recommended for general use or implementation, as it is subject to normative (breaking) changes."
+					>⚠️ {{ page.extra.status }}</span
+				>
+				{% elif page.extra.status == "Last Call" %}
+				<span
+					class="badge text-light bg-success"
+					data-bs-toggle="tooltip"
+					data-bs-title="This EIP is in the last call for review stage. The authors wish to finalize the EIP and ask you to provide feedback."
+					>📢 Last Call</span
+				>
+				{% endif %} {% endif %}
+			</p>
+			<h1 class="page-heading">
+				{% if config.extra.eip_prefix -%} {{- config.extra.eip_prefix -}} {%-
+				else -%} EIP- {%- endif -%} {{- page.extra.number -}}: {{ page.title }}
+				{% if page.extra.discussions_to %}
+				<a href="{{ page.extra.discussions_to }}" class="no-underline">
+					<svg
+						role="img"
+						aria-label="Discuss"
+						class="inline-svg"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
 					>
-				</td>
-			</tr>
-			{% endif %} {% if page.extra.requires %}
-			<tr>
-				<th scope="row">Requires</th>
-				<td>
-					{% for required in page.extra.requires -%}
-					{% set path = required | trim_start_matches(pat="@/") %}
-					{% set page = get_page(path=path) %}
-					<a href="{{ get_url(path=required) }}" title="{{ page.title }}">
-					{{- page.slug -}}
-					</a>
-					{%- if not loop.last %}, {% endif -%}
-					{%- endfor %}
-				</td>
-			</tr>
-			{% endif %}
-		</tbody>
-	</table>
-	<br />
+						<use xlink:href="#bi-chat" />
+					</svg>
+				</a>
+				{% endif %} {% if config.extra.github.repository_url %}
+				<a
+					href="{{ config.extra.github.repository_url }}/blob/master/content/{{ page.relative_path }}"
+					class="no-underline"
+				>
+					<svg
+						role="img"
+						aria-label="Source"
+						class="inline-svg"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+					>
+						<use xlink:href="#bi-code" />
+					</svg>
+				</a>
+				{% endif %}
+			</h1>
+			<p role="doc-subtitle">{{ page.description }}</p>
+		</hgroup>
+		<table class="table table-borderless preamble">
+			<tbody>
+				<tr>
+					<th scope="row">Authors</th>
+					<td>{% include "includes/authorlist.html" %}</td>
+				</tr>
+				{% if page.date %}
+				<tr>
+					<th scope="row">Created</th>
+					<td>{{ page.date }}</td>
+				</tr>
+				{% endif %} {% if page.extra.last_call_deadline %}
+				<tr>
+					<th scope="row">Last Call Deadline</th>
+					<td>{{ page.extra.last_call_deadline }}</td>
+				</tr>
+				{% endif %} {% if page.extra.discussions_to %}
+				<tr>
+					<th scope="row">Discussion Link</th>
+					<td>
+						<a href="{{ page.extra.discussions_to }}" target="__blank"
+							>{{ page.extra.discussions_to }}</a
+						>
+					</td>
+				</tr>
+				{% endif %} {% if page.extra.requires %}
+				<tr>
+					<th scope="row">Requires</th>
+					<td>
+						{% for required in page.extra.requires -%}
+						{% set path = required | trim_start_matches(pat="@/") %}
+						{% set page = get_page(path=path) %}
+						<a href="{{ get_url(path=required) }}" title="{{ page.title }}">
+						{{- page.slug -}}
+						</a>
+						{%- if not loop.last %}, {% endif -%}
+						{%- endfor %}
+					</td>
+				</tr>
+				{% endif %}
+			</tbody>
+		</table>
+		<br />
 
-	{% if page.extra.status == "Review" or page.extra.status == "Last Call" %}
-	<div class="alert alert-primary d-flex align-items-center" role="alert">
-		<svg
-			class="bi flex-shrink-0 me-2"
-			role="img"
-			aria-label="Info:"
-			style="width: 2.5em; height: 2.5em"
-		>
-			<use xlink:href="#bi-megaphone-fill" />
-		</svg>
-		<div class="text-center w-100">
-			<a href="{{ page.extra.discussions_to }}" target="__blank"
-				>This EIP is in the process of being peer-reviewed. If you are
-				interested in this EIP, please participate using this discussion
-				link.</a
+		{% if page.extra.status == "Review" or page.extra.status == "Last Call" %}
+		<div class="alert alert-primary d-flex align-items-center" role="alert">
+			<svg
+				class="bi flex-shrink-0 me-2"
+				role="img"
+				aria-label="Info:"
+				style="width: 2.5em; height: 2.5em"
 			>
+				<use xlink:href="#bi-megaphone-fill" />
+			</svg>
+			<div class="text-center w-100">
+				<a href="{{ page.extra.discussions_to }}" target="__blank"
+					>This EIP is in the process of being peer-reviewed. If you are
+					interested in this EIP, please participate using this discussion
+					link.</a
+				>
+			</div>
 		</div>
-	</div>
-	{% endif %}
+		{% endif %}
+	</header>
 
-	<div class="toc">
+	<nav class="toc">
 		<h2>Table of Contents</h2>
 		{% if page.toc %}
 		<ul>
@@ -254,7 +267,7 @@
 			{% endfor %}
 		</ul>
 		{% endif %}
-	</div>
+	</nav>
 
 	{{ page.content | safe }}
 	<h2>Citation</h2>
