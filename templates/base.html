@@ -12,7 +12,7 @@
 		<title>{% block title %}{{ config.title }}{% endblock title %}</title>
 
 		<meta property="og:site_name" content="{{ config.title }}" />
-		<meta property="og:url" content="{{ current_url }}" />
+		<link property="og:url" href="{{ current_url }}" />
 
 		{% block extra_head %}
 		<meta property="og:title" content="{{ config.title }}" />
