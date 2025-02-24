@@ -1,0 +1,14 @@
+{% if taxonomy.feed %}
+{% for feed_filename in config.feed_filenames %}
+{%- if feed_filename == 'atom.xml' %}
+{% set title="Subscribe (Atom)" %}
+{% else %}
+{% set title="Subscribe" %}
+{% endif %}
+<a href="{{ get_url(path=current_path ~ feed_filename) | safe }}" title="{{ title }}">
+	<svg class="svg-icon orange">
+		<use xlink:href="{{ get_url(path='/assets/images/rss.svg') }}#rss"></use>
+	</svg>
+</a>
+{% endfor %}
+{% endif %}

@@ -61,6 +61,7 @@
 			media="(prefers-color-scheme: light)" />
 		{% endif %}
 
+		{% block rss %}
 		{% for feed_filename in config.feed_filenames %}
 		<link
 			rel="alternate"
@@ -69,6 +70,7 @@
 			href="{{ get_url(path=feed_filename) | safe }}"
 		/>
 		{% endfor %}
+		{% endblock rss %}
 		<link
 			href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
 			rel="stylesheet"
@@ -145,10 +147,23 @@
 
 					<div class="trigger row p-2">
 						<span>
+							{% for pair in config.extra.banner_taxonomies %}
+							{% set taxonomy_detail = get_taxonomy(kind=pair.name) %}
+							<a class="page-link col" href="{{ taxonomy_detail.permalink }}">
+								{{ pair.label }}
+							</a>
+							{% else %}
 							{% for taxonomy in config.taxonomies %}
 							{% set taxonomy_detail = get_taxonomy(kind=taxonomy.name) %}
 							<a class="page-link col" href="{{ taxonomy_detail.permalink }}">
 								{{ taxonomy.name | title }}
+							</a>
+							{% endfor %}
+							{% endfor %}
+
+							{% for pair in config.extra.banner_links %}
+							<a class="page-link col" href="{{ get_url(path=pair.href) }}">
+								{{ pair.label }}
 							</a>
 							{% endfor %}
 						</span>

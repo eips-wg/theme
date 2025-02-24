@@ -54,5 +54,18 @@ bottom_footnotes = true
 google_site_verification = "RgkqLC0fdJob232LgA5o7qUs7l1C3b2r1JKWcDlWOFI"
 msvalidate = "E0C4C0C98D96DD251F246B52E434B0E9"
 
+banner_taxonomies = [
+    { label = "All", name = "status" },
+]
+
+banner_links = [
+    { label = "Core", href = "/category/core/" },
+    { label = "Networking", href = "/category/networking/" },
+    { label = "Interface", href = "/category/interface/" },
+    { label = "ERC", href = "/category/erc/" },
+    { label = "Meta", href = "/type/meta/" },
+    { label = "Informational", href = "/type/informational/" },
+]
+
 [extra.github]
 repository_url = "https://github.com/eips-wg/@@slug@@"
