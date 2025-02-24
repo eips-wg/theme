@@ -2,9 +2,11 @@
 
 {% block extra_head %}
 <meta property="og:type" content="article" />
+<meta name="citation_series_title" content="{{ config.title }}" />
 
 {% if page.title %}
 <meta property="og:title" content="{{ page.title }} | {{ config.title }}" />
+<meta property="citation_title" content="{{ page.title }}" />
 {% endif %}
 {% if page.description %}
 <meta property="og:description" content="{{ page.description }}" />
@@ -13,12 +15,15 @@
 {% endif %}
 {% if page.date %}
 <meta property="article:published_time" content="{{ page.date }}" />
+<meta property="citation_publication_date" content="{{ page.date | date(format="%Y/%m/%d") }}" />
 {% endif %}
 {% if page.updated %}
 <meta property="article:modified_time" content="{{ page.updated }}" />
+<meta property="citation_date" content="{{ page.updated | date(format="%Y/%m/%d") }}" />
 {% endif %}
 {% if page.extra.author_details %}
 {% for author in page.extra.author_details %}
+<meta property="citation_author" content="{{ author.name }}" />
 {% if author.github %}
 <meta
 	property="article:author"
@@ -27,9 +32,16 @@
 {% elif author.email %}
 {# TODO: Verify that mailto links don't break anything. #}
 <meta property="article:author" content="mailto:{{ author.email }}" />
+<meta property="citation_author_email" content="{{ author.email }}" />
 {% endif %}
 {% endfor %}
 {% endif %}
+
+{% if page.extra.number %}
+<meta property="citation_technical_report_number" content="{{ page.extra.number }}" />
+{% endif %}
+
+{# TODO: <meta property="citation_reference" content="..."> #}
 
 <script type="application/ld+json">
 	{
