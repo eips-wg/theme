@@ -1,18 +1,43 @@
-import Fuse from 'https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.mjs';
+console.log('Search script initialized');
 
-console.log('Loading search');
+// Variables to store the search components
+let fuse = null;
+let data = null;
+let fusePromise = null;
 
-// This initializes search using fuse.js
-// The fuse file is hosted at ./search_index.en.json
-
-const data = await fetch('/search_index.en.json').then(res => res.json());
-
-const fuse = new Fuse(data, {
-    includeScore: true,
-    keys: ['title', 'description', 'body'],
-});
-
-console.log('Search initialized', fuse, data);
+// Function to lazy load Fuse.js and search data
+const initializeSearch = async () => {
+  // If already initialized or initializing, return the promise
+  if (fusePromise) return fusePromise;
+  
+  console.log('Loading search components...');
+  
+  // Create a promise that will resolve when search is ready
+  fusePromise = (async () => {
+    try {
+      // Dynamically import Fuse.js
+      const { default: Fuse } = await import('https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.mjs');
+      
+      // Fetch search data
+      data = await fetch('/search_index.en.json').then(res => res.json());
+      
+      // Initialize Fuse
+      fuse = new Fuse(data, {
+        includeScore: true,
+        keys: ['title', 'description', 'body'],
+      });
+      
+      console.log('Search initialized successfully');
+      return { fuse, data };
+    } catch (error) {
+      console.error('Failed to initialize search:', error);
+      fusePromise = null; // Reset so we can try again
+      throw error;
+    }
+  })();
+  
+  return fusePromise;
+};
 
 // Create search modal HTML
 const createSearchModal = () => {
@@ -44,43 +69,55 @@ const createSearchModal = () => {
 };
 
 // Search function
-const performSearch = (e) => {
+const performSearch = async (e) => {
   const query = e.target.value;
   const resultsContainer = document.getElementById('search-results');
-  console.log('Performing search', query);
   
   if (!query) {
     resultsContainer.innerHTML = '';
     return;
   }
   
-  const results = fuse.search(query, { limit: 10 });
+  // Show loading state
+  resultsContainer.innerHTML = '<div class="no-results">Loading...</div>';
   
-  if (results.length === 0) {
-    resultsContainer.innerHTML = '<div class="no-results">No results found</div>';
-    return;
-  }
-  
-  resultsContainer.innerHTML = results.map(result => {
-    const item = result.item;
-    const title = item.title || 'Untitled';
-    
-    // Create a preview from either description or body
-    let preview = item.description || '';
-    if (!preview && item.body) {
-      preview = item.body.substring(0, 150) + '...';
+  try {
+    // Ensure search is initialized
+    if (!fuse) {
+      await initializeSearch();
     }
     
-    // Create URL from item.url or fallback
-    const url = item.url || '#';
+    const results = fuse.search(query, { limit: 10 });
     
-    return `
-      <a href="${url}" class="search-result">
-        <h3>${title}</h3>
-        <p>${preview}</p>
-      </a>
-    `;
-  }).join('');
+    if (results.length === 0) {
+      resultsContainer.innerHTML = '<div class="no-results">No results found</div>';
+      return;
+    }
+    
+    resultsContainer.innerHTML = results.map(result => {
+      const item = result.item;
+      const title = item.title || 'Untitled';
+      
+      // Create a preview from either description or body
+      let preview = item.description || '';
+      if (!preview && item.body) {
+        preview = item.body.substring(0, 150) + '...';
+      }
+      
+      // Create URL from item.url or fallback
+      const url = item.url || '#';
+      
+      return `
+        <a href="${url}" class="search-result">
+          <h3>${title}</h3>
+          <p>${preview}</p>
+        </a>
+      `;
+    }).join('');
+  } catch (error) {
+    resultsContainer.innerHTML = '<div class="no-results">Error loading search. Please try again.</div>';
+    console.error('Search error:', error);
+  }
 };
 
 // Open search modal
@@ -96,6 +133,9 @@ const openSearchModal = () => {
     document.getElementById('search-results').innerHTML = '';
     setTimeout(() => document.getElementById('search-input').focus(), 10);
   }
+  
+  // Start initializing search in the background
+  initializeSearch().catch(err => console.error('Failed to initialize search:', err));
   
   // Add event listener to close on escape
   document.addEventListener('keydown', handleEscapeKey);
@@ -224,5 +264,5 @@ const addSearchStyles = () => {
   document.head.appendChild(style);
 };
 
-// Initialize the search UI
+// Initialize the search UI (just styles, not the search functionality)
 addSearchStyles();
