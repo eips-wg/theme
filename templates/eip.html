@@ -59,6 +59,9 @@
 	{% if page.date %}
 		"dateCreated": "{{ page.date }}",
 	{% endif %}
+	{% if page.extra.number %}
+		"position": {{ page.extra.number }},
+	{% endif %}
 	{% if page.updated %}
 		"dateModified": "{{ page.updated }}",
 	{% endif %}
