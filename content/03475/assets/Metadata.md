@@ -1,15 +1,15 @@
 +++
 path = "3475/assets/Metadata"
+aliases = ["/assets/eip-3475/Metadata", "/assets/erc-3475/Metadata"]
 
 +++
-# Metadata  standards 
-
+# Metadata  standards
 
 This documentation consists of various JSON schemas (examples or standards) that can be referenced by the reader of this EIP for implementing EIP-3475 bonds storage.
 
-## 1. Description metadata: 
+## 1. Description metadata:
 
-```json 
+````json
 [
     {
         "title": "defining the title information",
@@ -17,24 +17,26 @@ This documentation consists of various JSON schemas (examples or standards) that
         "description": "little description about the information stored in  the bond",
     }
 ]
-```
+````
 
 Example: adding details in bonds describing the local jurisdiction of the bonds where it's issued:
 
-```json
+````json
 {
 "title": "localisation",
 "_type": "string",
 "description": "jurisdiction law codes compatibility"
 "values": ["fr ", "de", "ch"]
 }
-```
+````
+
 The 'values' field defined above can also be ISO codes or other hex standard representation.
+
 ## 2. Nonce metadata:
 
-- **Information defining the state of the bond** 
+* **Information defining the state of the bond**
 
-```json
+````json
 [	
 	{	
 	"title": "maturity",
@@ -43,12 +45,11 @@ The 'values' field defined above can also be ISO codes or other hex standard rep
 	"values": [0, 0, 0]
 	}
 ]
-```
-
+````
 
 ## 3. Class metadata:
 
-```json
+````json
 [ 
 	{	
 	"title": "symbol",
@@ -91,7 +92,9 @@ The 'values' field defined above can also be ISO codes or other hex standard rep
 	"values": [0, 0, 0]
 	}
 ]
-```
-## Examples of other standards: 
-    - ISO-20022 standard is the recently adopted standard by banks for communicating  financial operators (Banks, trading intermediaries, underwriters) that also include bond operations. 
+````
 
+## Examples of other standards:
+
+    - ISO-20022 standard is the recently adopted standard by banks for communicating  financial operators (Banks, trading intermediaries, underwriters) that also include bond operations. 
+    

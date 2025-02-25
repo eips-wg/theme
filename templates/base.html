@@ -147,11 +147,13 @@
 
 					<div class="trigger row p-2">
 						<span>
+							{% if config.extra.banner_taxonomies %}
 							{% for pair in config.extra.banner_taxonomies %}
 							{% set taxonomy_detail = get_taxonomy(kind=pair.name) %}
 							<a class="page-link col" href="{{ taxonomy_detail.permalink }}">
 								{{ pair.label }}
 							</a>
+							{% endfor %}
 							{% else %}
 							{% for taxonomy in config.taxonomies %}
 							{% set taxonomy_detail = get_taxonomy(kind=taxonomy.name) %}
@@ -159,13 +161,15 @@
 								{{ taxonomy.name | title }}
 							</a>
 							{% endfor %}
-							{% endfor %}
+							{% endif %}
 
+							{% if config.extra.banner_links %}
 							{% for pair in config.extra.banner_links %}
 							<a class="page-link col" href="{{ get_url(path=pair.href) }}">
 								{{ pair.label }}
 							</a>
 							{% endfor %}
+							{% endif %}
 						</span>
 					</div>
 				</nav>

@@ -2,9 +2,9 @@
 title = "Abstract Storage Bonds"
 description = "Interface for creating tokenized obligations with abstract on-chain metadata storage"
 date = 2021-04-05
-updated = 2023-11-20T11:52:07-05:00
+updated = 2025-02-25T17:51:37+00:00
 slug = "3475"
-aliases = ["03475"]
+aliases = ["03475", "ERCS/erc-3475", "EIPS/eip-3475"]
 authors = ["Yu Liu", "Varun Deshpande", "Cedric Ngakam", "Dhruv Malik", "Samuel Gwlanold Edoumou", "Toufic Batrice"]
 template = "eip.html"
 
@@ -14,12 +14,12 @@ status = ["Final"]
 type = ["Standards Track"]
 
 [extra]
-type = "Standards Track"
-requires = ["@/07201.md"]
+requires = ["@/00020/index.md", "@/00721.md", "@/01155.md"]
 discussions_to = "https://ethereum-magicians.org/t/eip-3475-multiple-callable-bonds-standard/8691"
-status = "Final"
-category = "ERC"
+type = "Standards Track"
 number = 3475
+category = "ERC"
+status = "Final"
 
 [[extra.author_details]]
 github = "yuliu-debond"
@@ -46,29 +46,28 @@ github = "toufic0710"
 name = "Toufic Batrice"
 
 +++
-
 ## Abstract
 
-- This EIP allows the creation of tokenized obligations with abstract on-chain metadata storage. Issuing bonds with multiple redemption data cannot be achieved with existing token standards.
+* This EIP allows the creation of tokenized obligations with abstract on-chain metadata storage. Issuing bonds with multiple redemption data cannot be achieved with existing token standards.
 
-- This EIP enables each bond class ID to represent a new configurable token type and corresponding to each class, corresponding bond nonces to represent an issuing condition or any other form of data in uint256. Every single nonce of a bond class can have its metadata, supply, and other redemption conditions.
+* This EIP enables each bond class ID to represent a new configurable token type and corresponding to each class, corresponding bond nonces to represent an issuing condition or any other form of data in uint256. Every single nonce of a bond class can have its metadata, supply, and other redemption conditions.
 
-- Bonds created by this EIP can also be batched for issuance/redemption conditions for efficiency on gas costs and UX side. And finally, bonds created from this standard can be divided and exchanged in a secondary market.
+* Bonds created by this EIP can also be batched for issuance/redemption conditions for efficiency on gas costs and UX side. And finally, bonds created from this standard can be divided and exchanged in a secondary market.
 
 ## Motivation
 
-Current LP (Liquidity Provider) tokens are simple [EIP-20](./eip-20.md) tokens with no complex data structure. To allow more complex reward and redemption logic to be stored on-chain, we need a new token standard that:
+Current LP (Liquidity Provider) tokens are simple [EIP-20](@/00020/index.md) tokens with no complex data structure. To allow more complex reward and redemption logic to be stored on-chain, we need a new token standard that:
 
-- Supports multiple token IDs
-- Can store on-chain metadata
-- Doesn't require a fixed storage pattern
-- Is gas-efficient.
+* Supports multiple token IDs
+* Can store on-chain metadata
+* Doesn't require a fixed storage pattern
+* Is gas-efficient.
 
 Also Some benefits:
 
-- This EIP allows the creation of any obligation with the same interface.
-- It will enable any 3rd party wallet applications or exchanges to read these tokens' balance and redemption conditions. 
-- These bonds can also be batched as tradeable instruments. Those instruments can then be divided and exchanged in secondary markets.
+* This EIP allows the creation of any obligation with the same interface.
+* It will enable any 3rd party wallet applications or exchanges to read these tokens' balance and redemption conditions.
+* These bonds can also be batched as tradeable instruments. Those instruments can then be divided and exchanged in secondary markets.
 
 ## Specification
 
@@ -78,7 +77,7 @@ Bank: an entity that issues, redeems, or burns bonds after getting the necessary
 
 **Functions**
 
-```solidity
+````solidity
 pragma solidity ^0.8.0;
 
 /**
@@ -299,11 +298,11 @@ function allowance(address _owner, address _spender, uint256 classId, uint256 no
 * @returns “true” if the operator is approved, “false” if not.
 */
 function isApprovedFor(address _owner, address _operator) external view returns (bool);
-```
+````
 
 ### Events
 
-```solidity
+````solidity
 /** 
 * Issue
 * @notice Issue MUST trigger when Bonds are issued. This SHOULD not include zero value Issuing.
@@ -355,29 +354,29 @@ event Transfer(address indexed _operator, address indexed _from, address indexed
 */
 
 event ApprovalFor(address indexed _owner, address indexed _operator, bool _approved);
-```
+````
 
 **Metadata**:
-The metadata of a bond class or nonce is stored as an array of JSON objects, represented by the following types. 
+The metadata of a bond class or nonce is stored as an array of JSON objects, represented by the following types.
 
-**NOTE: all of the metadata schemas are referenced from [here](../assets/eip-3475/Metadata.md)**
+**NOTE: all of the metadata schemas are referenced from [here](@/03475/assets/Metadata.md)**
 
 ### 1. Description:
 
-This defines the additional information about the nature of data being stored in the nonce/class metadata structures. They are defined using the structured explained [here](../assets/eip-3475/Metadata.md#1-description-metadata). this will then be used by the frontend of the respective entities participating in the bond markets to interpret the data which is compliant with their jurisdiction. 
+This defines the additional information about the nature of data being stored in the nonce/class metadata structures. They are defined using the structured explained [here](./assets/Metadata.md#1-description-metadata). this will then be used by the frontend of the respective entities participating in the bond markets to interpret the data which is compliant with their jurisdiction.
 
 ### 2. Nonce:
 
 The key value for indexing the information is the 'class' field. Following are the rules:
 
-- The title can be any alphanumeric type that is differentiated by the description of metadata (although it can be dependent on certain jurisdictions).
-- The title SHOULD not be EMPTY.
+* The title can be any alphanumeric type that is differentiated by the description of metadata (although it can be dependent on certain jurisdictions).
+* The title SHOULD not be EMPTY.
 
-Some specific examples of metadata can be the localization of bonds, jurisdiction details etc., and they can be found in the [metadata.md](../assets/eip-3475/Metadata.md) example description.
+Some specific examples of metadata can be the localization of bonds, jurisdiction details etc., and they can be found in the [metadata.md](@/03475/assets/Metadata.md) example description.
 
 ### 3. Class metadata:
 
-This structure defines the details of the class information (symbol, risk information, etc.). the example is explained [here](../assets/eip-3475/Metadata.md) in the class metadata section.
+This structure defines the details of the class information (symbol, risk information, etc.). the example is explained [here](@/03475/assets/Metadata.md) in the class metadata section.
 
 ### 4. Decoding data
 
@@ -385,14 +384,14 @@ First, the functions for analyzing the metadata (i.e `ClassMetadata` and `NonceM
 
 This is done via overriding the function interface for functions `classValues` and `nonceValues` by defining the key (which SHOULD be an index) to read the corresponding information stored as a JSON object.
 
-```JSON
+````JSON
 {
 "title": "symbol",
 "_type": "string",
 "description": "defines the unique identifier name in following format: (symbol, bondType, maturity in months)",
 "values": ["Class Name 1","Class Name 2","DBIT Fix 6M"],
 }
-```
+````
 
 e.g. In the above example, to get the `symbol` of the given class id, we can use the class id as a key to get the `symbol` value in the values, which then can be used for fetching the detail for instance.
 
@@ -402,7 +401,7 @@ e.g. In the above example, to get the `symbol` of the given class id, we can use
 
 Instead of storing the details about the class and their issuances to the user (ie nonce) externally, we store the details in the respective structures. Classes represent the different bond types, and nonces represent the various period of issuances. Nonces under the same class share the same metadata. Meanwhile, nonces are non-fungible. Each nonce can store a different set of metadata. Thus, upon transfer of a bond, all the metadata will be transferred to the new owner of the bond.
 
-```solidity
+````solidity
  struct Values{
  string stringValue;
  uint uintValue;
@@ -410,27 +409,27 @@ Instead of storing the details about the class and their issuances to the user (
  bool boolValue;
  bytes bytesValue;
  }
-```
+````
 
-```solidity
+````solidity
  struct Metadata {
  string title;
  string _type;
  string description;
  }
-```
+````
 
 ### Batch function
 
- This EIP supports batch operations. It allows the user to transfer different bonds along with their metadata to a new address instantaneously in a single transaction. After execution, the new owner holds the right to reclaim the face value of each of the bonds. This mechanism helps with the "packaging" of bonds–helpful in use cases like trades on a secondary market.
+This EIP supports batch operations. It allows the user to transfer different bonds along with their metadata to a new address instantaneously in a single transaction. After execution, the new owner holds the right to reclaim the face value of each of the bonds. This mechanism helps with the "packaging" of bonds–helpful in use cases like trades on a secondary market.
 
-```solidity
+````solidity
  struct Transaction {
  uint256 classId;
  uint256 nonceId;
  uint256 _amount;
  }
-```
+````
 
 Where:
 The `classId` is the class id of the bond.
@@ -441,42 +440,42 @@ The `_amount` is the amount of the bond for which the spender is approved.
 
 ### AMM optimization
 
- One of the most obvious use cases of this EIP is the multilayered pool. The early version of AMM uses a separate smart contract and an [EIP-20](./eip-20.md) LP token to manage a pair. By doing so, the overall liquidity inside of one pool is significantly reduced and thus generates unnecessary gas spent and slippage. Using this EIP standard, one can build a big liquidity pool with all the pairs inside (thanks to the presence of the data structures consisting of the liquidity corresponding to the given class and nonce of bonds). Thus by knowing the class and nonce of the bonds, the liquidity can be represented as the percentage of a given token pair for the owner of the bond in the given pool. Effectively, the [EIP-20](./eip-20.md) LP token (defined by a unique smart contract in the pool factory contract) is aggregated into a single bond and consolidated into a single pool.
+One of the most obvious use cases of this EIP is the multilayered pool. The early version of AMM uses a separate smart contract and an [EIP-20](@/00020/index.md) LP token to manage a pair. By doing so, the overall liquidity inside of one pool is significantly reduced and thus generates unnecessary gas spent and slippage. Using this EIP standard, one can build a big liquidity pool with all the pairs inside (thanks to the presence of the data structures consisting of the liquidity corresponding to the given class and nonce of bonds). Thus by knowing the class and nonce of the bonds, the liquidity can be represented as the percentage of a given token pair for the owner of the bond in the given pool. Effectively, the [EIP-20](@/00020/index.md) LP token (defined by a unique smart contract in the pool factory contract) is aggregated into a single bond and consolidated into a single pool.
 
-- The reason behind the standard's name (abstract storage bond) is its ability to store all the specifications (metadata/values and transaction as defined in the following sections) without needing external storage on-chain/off-chain.
+* The reason behind the standard's name (abstract storage bond) is its ability to store all the specifications (metadata/values and transaction as defined in the following sections) without needing external storage on-chain/off-chain.
 
 ## Backwards Compatibility
 
 Any contract that inherits the interface of this EIP is compatible. This compatibility exists for issuer and receiver of the bonds. Also any client EOA wallet can be compatible with the standard if they are able to sign `issue()` and `redeem()` commands.
 
-However, any existing [EIP-20](./eip-20.md) token contract can issue its bonds by delegating the minting role to a bank contract with the interface of this standard built-in. Check out our reference implementation for the correct interface definition.
+However, any existing [EIP-20](@/00020/index.md) token contract can issue its bonds by delegating the minting role to a bank contract with the interface of this standard built-in. Check out our reference implementation for the correct interface definition.
 
 To ensure the indexing of transactions throughout the bond lifecycle (i.e "Issue", "Redeem" and "Transfer" functions), events cited in specification section MUST be emitted when such transaction is passed.
 
-**Note that the this standard interface is also compatible with [EIP-20](./eip-20.md) and [EIP-721](./eip-721.md) and [EIP-1155](./eip-1155.md)interface.**
+**Note that the this standard interface is also compatible with [EIP-20](@/00020/index.md) and [EIP-721](@/00721.md) and [EIP-1155](@/01155.md)interface.**
 
 However, creating a separate bank contract is recommended for reading the bonds and future upgrade needs.
 
-Acceptable collateral can be in the form of fungible (like [EIP-20](./eip-20.md)), non-fungible ([EIP-721](./eip-721.md), [EIP-1155](./eip-1155.md)) , or other bonds represented by this standard.
+Acceptable collateral can be in the form of fungible (like [EIP-20](@/00020/index.md)), non-fungible ([EIP-721](@/00721.md), [EIP-1155](@/01155.md)) , or other bonds represented by this standard.
 
 ## Test Cases
 
-Test-case for the minimal reference implementation is [here](../assets/eip-3475/ERC3475.test.ts). Use the Truffle box to compile and test the contracts.
+Test-case for the minimal reference implementation is [here](./assets/ERC3475.test.ts). Use the Truffle box to compile and test the contracts.
 
 ## Reference Implementation
 
-- [Interface](../assets/eip-3475/interfaces/IERC3475.sol).
+* [Interface](./assets/interfaces/IERC3475.sol).
 
-- [Basic Example](../assets/eip-3475/ERC3475.sol).
-  - This demonstration shows only minimalist implementation.
+* [Basic Example](./assets/ERC3475.sol).
+  
+  * This demonstration shows only minimalist implementation.
 
 ## Security Considerations
 
-- The `function setApprovalFor(address _operatorAddress)` gives the operator role to `_operatorAddress`. It has all the permissions to transfer, burn and redeem bonds by default.
+* The `function setApprovalFor(address _operatorAddress)` gives the operator role to `_operatorAddress`. It has all the permissions to transfer, burn and redeem bonds by default.
 
-- If the owner wants to give a one-time allocation to an address for specific bonds(classId,bondsId), he should call the `function approve()` giving the `Transaction[]` allocated rather than approving all the classes using `setApprovalFor`.
+* If the owner wants to give a one-time allocation to an address for specific bonds(classId,bondsId), he should call the `function approve()` giving the `Transaction[]` allocated rather than approving all the classes using `setApprovalFor`.
 
 ## Copyright
 
-Copyright and related rights waived via [CC0](../LICENSE.md).
-
+Copyright and related rights waived via [CC0](@/LICENSE.md).
