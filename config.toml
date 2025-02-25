@@ -74,3 +74,6 @@ tooltip = "Describes a process surrounding Ethereum or proposes a change to (or 
 
 [extra.taxonomies.type.standards-track]
 tooltip = "Describes any change that affects most or all Ethereum implementations or any application."
+
+[search]
+index_format = "fuse_json"
