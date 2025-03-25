@@ -1,0 +1,7 @@
+{%- macro eip_number(page) -%}
+{%- if page.extra.category and page.extra.category == "ERC" -%}
+	ERC-
+{%- else -%}
+	EIP-
+{%- endif -%}{{- page.extra.number -}}
+{%- endmacro eip_number -%}

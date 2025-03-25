@@ -151,6 +151,42 @@ pre,code {
   display: inline-block;
 }
 
+.badge {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-secondary-rgb),var(--bs-bg-opacity));
+}
+
+.tax-term-final, .tax-term-last-call {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-success-rgb),var(--bs-bg-opacity)) !important;
+}
+
+.tax-term-last-call::before {
+  content: '📢 ';
+}
+
+.tax-term-stagnant, .tax-term-withdrawn {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-danger-rgb),var(--bs-bg-opacity)) !important;
+}
+
+.tax-term-withdrawn::before {
+  content: '🛑 ';
+}
+
+.tax-term-stagnant::before {
+  content: '🚧 ';
+}
+
+.tax-term-draft, .tax-term-review {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-warning-rgb),var(--bs-bg-opacity)) !important;
+}
+
+.tax-term-draft::before, .tax-term-review::before {
+  content: '⚠️ ';
+}
+
 @media print {
 
   header,

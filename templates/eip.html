@@ -1,12 +1,18 @@
 {% extends "page.html" %}
+{% import "macros.html" as macros %}
+
+{% block title -%}
+{{ macros::eip_number(page=page) }}: {{- page.title }} | {{ config.title -}}
+{% endblock title %}
+
 
 {% block extra_head %}
 <meta property="og:type" content="article" />
 <meta name="citation_series_title" content="{{ config.title }}" />
 
 {% if page.title %}
-<meta property="og:title" content="{{ page.title }} | {{ config.title }}" />
-<meta property="citation_title" content="{{ page.title }}" />
+<meta property="og:title" content="{{ macros::eip_number(page=page) }}: {{ page.title }} | {{ config.title }}" />
+<meta property="citation_title" content="{{ macros::eip_number(page=page) }}: {{ page.title }}" />
 {% endif %}
 {% if page.description %}
 <meta property="og:description" content="{{ page.description }}" />
@@ -133,39 +139,29 @@
 	<header>
 		<hgroup>
 			<p class="h5">
-				{% if page.extra.status %} {% if page.extra.status == "Stagnant" %}
+				{# Sort the taxonomies so they appear in a consistent order. #}
+				{% set_global taxonomies = [] %}
+				{% for taxonomy, terms in page.taxonomies %}
+				{% set_global taxonomies = taxonomies | concat(with=taxonomy) %}
+				{% endfor %}
+				{% for taxonomy in taxonomies | sort %}
+				{% set terms = page.taxonomies[taxonomy] %}
+				{% set taxonomy_slug = taxonomy | slugify %}
+				{% for term in terms | sort %}
+				{% set term_slug = term | slugify %}
 				<span
-					class="badge text-light bg-danger"
+					class="badge text-light tax-label-{{ taxonomy_slug }} tax-term-{{ term_slug }}"
+					{% if config.extra.taxonomies and config.extra.taxonomies[taxonomy_slug][term_slug] %}
 					data-bs-toggle="tooltip"
-					data-bs-title="This EIP had no activity for at least 6 months. This EIP should not be used."
-					>🚧 Stagnant</span
-				>
-				{% elif page.extra.status == "Withdrawn" %}
-				<span
-					class="badge text-light bg-danger"
-					data-bs-toggle="tooltip"
-					data-bs-title="This EIP has been withdrawn, and should not be used."
-					>🛑 Withdrawn</span
-				>
-				{% elif page.extra.status == "Draft" or page.extra.status == "Review" %}
-				<span
-					class="badge text-light bg-warning"
-					data-bs-toggle="tooltip"
-					data-bs-title="This EIP is not yet recommended for general use or implementation, as it is subject to normative (breaking) changes."
-					>⚠️ {{ page.extra.status }}</span
-				>
-				{% elif page.extra.status == "Last Call" %}
-				<span
-					class="badge text-light bg-success"
-					data-bs-toggle="tooltip"
-					data-bs-title="This EIP is in the last call for review stage. The authors wish to finalize the EIP and ask you to provide feedback."
-					>📢 Last Call</span
-				>
-				{% endif %} {% endif %}
+					data-bs-title="{{ config.extra.taxonomies[taxonomy_slug][term_slug].tooltip }}"
+					{% endif %}>
+					{{- term -}}
+				</span>
+				{% endfor %}
+				{% endfor %}
 			</p>
 			<h1 class="page-heading">
-				{% if config.extra.eip_prefix -%} {{- config.extra.eip_prefix -}} {%-
-				else -%} EIP- {%- endif -%} {{- page.extra.number -}}: {{ page.title }}
+				{{ macros::eip_number(page=page) }}: {{ page.title }}
 				{% if page.extra.discussions_to %}
 				<a href="{{ page.extra.discussions_to }}" class="no-underline">
 					<svg
@@ -230,7 +226,7 @@
 						{% set path = required | trim_start_matches(pat="@/") %}
 						{% set page = get_page(path=path) %}
 						<a href="{{ get_url(path=required) }}" title="{{ page.title }}">
-						{{- page.slug -}}
+						{{ macros::eip_number(page=page) }}
 						</a>
 						{%- if not loop.last %}, {% endif -%}
 						{%- endfor %}
@@ -292,9 +288,7 @@
 	#}
 	<div>
 		{%- for author in page.authors -%} {{- author -}} {% if not loop.last
-		-%}, {% endif -%} {%- endfor -%}, "{% if config.extra.eip_prefix -%} {{-
-		config.extra.eip_prefix -}} {%- else -%} EIP- {%- endif -%} {{-
-		page.extra.number -}}: {{ page.title }},"
+		-%}, {% endif -%} {%- endfor -%}, "{{ page.title }},"
 		<em>Ethereum Improvement Proposals</em>, no. {{ page.extra.number }}{%
 		if page.draft %}, early access{% endif %}{% if page.date %}, {{
 		page.date | date(format="%B %Y") }}{% endif %}. [Online serial].
