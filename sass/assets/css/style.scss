@@ -28,6 +28,11 @@ $content-width: 1152px;
   }
 }
 
+.page-heading .svg-icon {
+  @include relative-font-size(0.9375);
+  vertical-align: baseline;
+}
+
 .footer-col-wrapper {
   color: #111;
 }
