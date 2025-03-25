@@ -68,7 +68,8 @@ banner_links = [
 ]
 
 [extra.github]
-repository_url = "https://github.com/eips-wg/@@slug@@"
+eip_repository = "https://github.com/ethereum/EIPs"
+erc_repository = "https://github.com/ethereum/ERCs"
 
 [extra.taxonomies.status.stagnant]
 tooltip = "This EIP had no activity for at least 6 months. This EIP should not be used."

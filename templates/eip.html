@@ -174,9 +174,16 @@
 						<use xlink:href="#bi-chat" />
 					</svg>
 				</a>
-				{% endif %} {% if config.extra.github.repository_url %}
+				{% endif %}
+				{% if config.extra.github.eip_repository %}
+				{% set_global repo_url = config.extra.github.eip_repository %}
+				{% if page.extra.category and page.extra.category == "ERC" and config.extra.github.erc_repository %}
+				{% set_global repo_url = config.extra.github.erc_repository %}
+				{% else %}
+				{% endif %}
+
 				<a
-					href="{{ config.extra.github.repository_url }}/blob/master/content/{{ page.relative_path }}"
+					href="{{ repo_url }}/blob/master/content/{{ page.relative_path }}"
 					class="no-underline"
 				>
 					<svg

@@ -34,7 +34,7 @@ highlight_themes_css = [
 ]
 
 [extra.github]
-repository_url = "https://github.com/eips-wg/eips-theme"
+eip_repository = "https://github.com/eips-wg/eips-theme"
 
 [extra.taxonomies.status.stagnant]
 tooltip = "This EIP had no activity for at least 6 months. This EIP should not be used."
