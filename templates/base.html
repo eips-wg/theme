@@ -158,7 +158,7 @@
 							{% for taxonomy in config.taxonomies %}
 							{% set taxonomy_detail = get_taxonomy(kind=taxonomy.name) %}
 							<a class="page-link col" href="{{ taxonomy_detail.permalink }}">
-								{{ taxonomy.name | title }}
+								{{- taxonomy.name | title -}}
 							</a>
 							{% endfor %}
 							{% endif %}
@@ -166,7 +166,7 @@
 							{% if config.extra.banner_links %}
 							{% for pair in config.extra.banner_links %}
 							<a class="page-link col" href="{{ get_url(path=pair.href) }}">
-								{{ pair.label }}
+								{{- pair.label -}}
 							</a>
 							{% endfor %}
 							{% endif %}
