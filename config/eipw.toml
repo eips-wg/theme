@@ -1,4 +1,4 @@
-schema-version = "0.10.0-dev+a243f76f1d18085c2f42e6079ceb5803d69f7a1a91129dc7c4d0b2b2843c6292"
+schema-version = "0.10.0+793e8459b9ab9b4d955d2f98bf4283b94926f6a3e94d5462e392d98b67ac9729"
 
 [fetch]
 proposal-format = "{:05}"
