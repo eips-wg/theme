@@ -1,5 +1,6 @@
 +++
 title = "Token Standard"
+description = "A standard interface for tokens."
 date = 2015-11-19
 updated = 2025-02-25T17:51:37+00:00
 slug = "20"
@@ -25,8 +26,8 @@ name = "Fabian Vogelsteller"
 [[extra.author_details]]
 email = "vitalik.buterin@ethereum.org"
 name = "Vitalik Buterin"
-
 +++
+
 ## Simple Summary
 
 A standard interface for tokens.
