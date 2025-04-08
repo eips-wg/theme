@@ -8,7 +8,7 @@ base_url = "https://eips-wg.github.io/eips-theme"
 compile_sass = true
 
 # Whether to build a search index to be used later on by a JavaScript library
-build_search_index = true
+build_search_index = false
 
 taxonomies = [
     { name = "status", feed = true },
@@ -74,6 +74,3 @@ tooltip = "Describes a process surrounding Ethereum or proposes a change to (or 
 
 [extra.taxonomies.type.standards-track]
 tooltip = "Describes any change that affects most or all Ethereum implementations or any application."
-
-[search]
-index_format = "fuse_json"
