@@ -1,7 +1,8 @@
 console.log("Search script initialized");
 
-const fuse_external_url =
-    "https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.mjs";
+const FUSE_URL =
+    "https://cdn.jsdelivr.net/npm/fuse.js@7.1.0/dist/fuse.min.js";
+const FUSE_HASH = "sha384-P/y/5cwqUn6MDvJ9lCHJSaAi2EoH3JSeEdyaORsQMPgbpvA+NvvUqik7XH2YGBjb";
 
 // Variables to store the search components
 let fuse = null;
@@ -63,7 +64,7 @@ const parseFuseFromXML = (xml) => {
 };
 
 // Function to lazy load Fuse.js and search data
-const initializeSearch = async () => {
+const initializeSearch = () => {
     // If already initialized or initializing, return the promise
     if (fusePromise) return fusePromise;
 
@@ -71,16 +72,32 @@ const initializeSearch = async () => {
 
     // Create a promise that will resolve when search is ready
     fusePromise = (async () => {
-        try {
-            // Dynamically import Fuse.js
-            const { default: Fuse } = await import(fuse_external_url);
+        // Load Fuse using a <script> tag so we can use SRI.
+        const loadScript = new Promise((resolve, reject) => {
+            const scriptElem = document.createElement("script");
+            scriptElem.onload = () => {
+                if (window.Fuse) {
+                    resolve(window.Fuse);
+                } else {
+                    reject(new Error("`window.Fuse` is falsy"));
+                }
+            };
+            scriptElem.onerror = (e) => reject(e);
+            scriptElem.integrity = FUSE_HASH;
+            scriptElem.src = FUSE_URL;
+            scriptElem.crossOrigin = "anonymous";
+            document.body.appendChild(scriptElem);
+        });
 
+        try {
             // Fetch search data
-            let tempdata = await fetch("/atom.xml").then((res) => res.text());
+            const dataPromise = fetch("/atom.xml").then((res) => res.text());
+
+            // Dynamically import Fuse.js
+            const Fuse = await loadScript;
+            let tempdata = await dataPromise;
 
             data = parseFuseFromXML(tempdata);
-
-            console.log(data);
 
             // Initialize Fuse
             fuse = new Fuse(data, {
@@ -104,6 +121,7 @@ const initializeSearch = async () => {
             return { fuse, data };
         } catch (error) {
             console.error("Failed to initialize search:", error);
+            alert("Failed to initialize search");
             fusePromise = null; // Reset so we can try again
             throw error;
         }
@@ -307,7 +325,7 @@ const addSearchStyles = () => {
       z-index: 1000;
       padding-top: 100px;
     }
-    
+
     .search-container {
       width: 600px;
       max-width: 90%;
@@ -316,13 +334,13 @@ const addSearchStyles = () => {
       overflow: hidden;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
-    
+
     .search-header {
       display: flex;
       padding: 16px;
       border-bottom: 1px solid #eee;
     }
-    
+
     #search-input {
       flex: 1;
       padding: 8px 12px;
@@ -330,7 +348,7 @@ const addSearchStyles = () => {
       font-size: 16px;
       outline: none;
     }
-    
+
     #close-search {
       background: none;
       border: none;
@@ -338,7 +356,7 @@ const addSearchStyles = () => {
       cursor: pointer;
       padding: 0 8px;
     }
-    
+
     #search-results {
       max-height: 400px;
       overflow-y: auto;
@@ -354,7 +372,7 @@ const addSearchStyles = () => {
     .search-result-header-meta {
       margin-top: -4px;
     }
-    
+
     .search-result {
       display: block;
       padding: 12px 16px;
@@ -363,28 +381,28 @@ const addSearchStyles = () => {
       color: #333;
       transition: background-color 0.2s;
     }
-    
+
     .search-result:hover {
       background-color: #f5f5f5;
       text-decoration: none;
     }
-    
+
     .search-result:hover h3, .search-result:hover p {
       text-decoration: underline;
     }
-    
+
     .search-result h3 {
       margin: 0 0 8px 0;
       font-size: 16px;
       color: #2563EB;
     }
-    
+
     .search-result p {
       margin: 0;
       font-size: 14px;
       color: #666;
     }
-    
+
     .no-results {
       padding: 16px;
       text-align: center;
