@@ -305,6 +305,20 @@ document.addEventListener("keydown", (e) => {
 const addSearchStyles = () => {
     const style = document.createElement("style");
     style.textContent = `
+    #search {
+        display: inline-block;
+        border-radius: var(--bs-border-radius);
+        border: 1px solid black;
+        text-decoration: none;
+        color: rgb(var(--bs-secondary-rgb));
+    }
+
+    #search > div {
+        background: no-repeat right url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iMTUiIGhlaWdodD0iMTUiIHZlcnNpb249IjEuMSIgdmlld0JveD0iMCAwIDMuOTY4OCAzLjk2ODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTU1LjU4IC04OC45KSI+CiAgPHBhdGggZD0ibTE1Ny4yOSA4OC45Yy0wLjk0NjY1IDAtMS43MTk4IDAuNzczMTQtMS43MTk4IDEuNzE5OCAwIDAuOTQ2NjUgMC43NzMxNCAxLjcxOTMgMS43MTk4IDEuNzE5MyAwLjM3ODA5IDAgMC43MjgzMy0wLjEyMzkyIDEuMDEyOS0wLjMzMjI4bDAuNzc5MjggMC43NzkyOGMwLjI1MzU2IDAuMjQ4MTkgMC42MjU2My0wLjEzMjE1IDAuMzcyMDctMC4zODAzNGwtMC43NzUxNS0wLjc3NTE1YzAuMjA3NjUtMC4yODQxIDAuMzMwNzMtMC42MzM1IDAuMzMwNzMtMS4wMTA4IDAtMC45NDY2NS0wLjc3MzE0LTEuNzE5OC0xLjcxOTgtMS43MTk4em0wIDAuNTI5MTdjMC42NjA2NiAwIDEuMTkwNiAwLjUyOTk2IDEuMTkwNiAxLjE5MDYgMCAwLjY2MDY2LTAuNTI5OTcgMS4xOTAxLTEuMTkwNiAxLjE5MDFzLTEuMTkwNi0wLjUyOTQ0LTEuMTkwNi0xLjE5MDFjMC0wLjY2MDY2IDAuNTI5OTYtMS4xOTA2IDEuMTkwNi0xLjE5MDZ6IiBmaWxsPSIjMmUzNDM2IiBzdHJva2Utd2lkdGg9Ii4yNjQ1OCIvPgogPC9nPgo8L3N2Zz4K');
+        padding-right: 32px;
+        margin: 0 0.5em;
+    }
+
     #search-modal {
       position: fixed;
       top: 0;
