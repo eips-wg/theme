@@ -1,8 +1,9 @@
-console.log("Search script initialized");
+console.log("Search script initializing");
 
 const FUSE_URL =
     "https://cdn.jsdelivr.net/npm/fuse.js@7.1.0/dist/fuse.min.js";
 const FUSE_HASH = "sha384-P/y/5cwqUn6MDvJ9lCHJSaAi2EoH3JSeEdyaORsQMPgbpvA+NvvUqik7XH2YGBjb";
+
 
 // Variables to store the search components
 let fuse = null;
@@ -300,14 +301,6 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-// Add click listener to search button if it exists
-document.addEventListener("DOMContentLoaded", () => {
-    const searchButton = document.getElementById("search");
-    if (searchButton) {
-        searchButton.addEventListener("click", openSearchModal);
-    }
-});
-
 // Add CSS for the search modal
 const addSearchStyles = () => {
     const style = document.createElement("style");
@@ -413,5 +406,19 @@ const addSearchStyles = () => {
     document.head.appendChild(style);
 };
 
-// Initialize the search UI (just styles, not the search functionality)
-addSearchStyles();
+const onContentLoaded = () => {
+    // Initialize the search UI (just styles, not the search functionality)
+    addSearchStyles();
+
+    // Add click listener to search button if it exists
+    const searchButton = document.getElementById("search");
+    if (searchButton) {
+        searchButton.addEventListener("click", openSearchModal);
+    }
+};
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", onContentLoaded);
+} else {
+    onContentLoaded();
+}
