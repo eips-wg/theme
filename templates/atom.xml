@@ -56,29 +56,38 @@
         </author>
 	{% endif %}
         <link rel="alternate" href="{{ page.permalink | safe }}" type="text/html"/>
+        {% if page.extra.discussions_to %}
+        {# "replies" is defined in RFC 4685 #}
+        <link rel="replies" type="text/html" href="{{ page.extra.discussions_to | escape_xml | safe }}" />
+        {% endif %}
+
         <id>{{ page.permalink | safe }}</id>
-        {% if page.extra.category %}
-        <category domain="{{ config.base_url | escape_xml | safe }}/category/{{ page.extra.category | slugify }}/" term="{{ page.extra.category }}" ref="category">{{ page.extra.category }}</category>
-        {% endif %}
-        {% if page.extra.status %}
-        <category domain="{{ config.base_url | escape_xml | safe }}/status/{{ page.extra.status | slugify }}/" term="{{ page.extra.status }}" ref="status">{{ page.extra.status }}</category>
-        {% endif %}
-        {% if page.extra.type %}
-        <category domain="{{ config.base_url | escape_xml | safe }}/type/{{ page.extra.type | slugify }}/" term="{{ page.extra.type }}" ref="type">{{ page.extra.type }}</category>
-        {% endif %}
-        {% if page.description %}
-        <summary type="html">{{ page.description }}</summary>
-        {% else %}
-        <content type="html"  xml:base="{{ page.permalink | escape_xml | safe }}">{{ page.content }}</content>
-        {% endif %}
-        {% if page.extra %}
-        <extra>
-        {% for key, value in page.extra %}
-          <token key="{{ key }}">{{ value }}</token>
+        {% for taxonomy, terms in page.taxonomies %}
+            {% for term in terms | sort %}
+            {% set taxonomy_obj = get_taxonomy(kind=taxonomy, required=true) %}
+            {% set term_obj = get_taxonomy_term(kind=taxonomy, term=term, required=true) %}
+            <category
+                scheme="{{ taxonomy_obj.permalink }}"
+                term="{{ term_obj.slug }}"
+                label="{{ term | escape_xml | safe }}" />
+            {% endfor %}
         {% endfor %}
-        <token key="slug_number">{{ macros::eip_number(page=page) }}</token>
-        </extra>
+
+        {% if page.extra.number %}
+        <category
+            term="tag:eip:{{ page.extra.number }}"
+            label="{{ macros::eip_number(page=page) }}" />
         {% endif %}
+
+        {# TODO: Number #}
+        {# TODO: Slug Number (EIP-1234) #}
+
+        {% if page.summary %}
+        <summary type="html">{{ page.summary }}</summary>
+        {% elif page.description %}
+        <summary type="html">{{ page.description }}</summary>
+        {% endif %}
+        <content type="html"  xml:base="{{ page.permalink | escape_xml | safe }}">{{ page.content }}</content>
     </entry>
     {%- endfor %}
 </feed>
