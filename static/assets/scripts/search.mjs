@@ -218,7 +218,16 @@ const performSearch = async (e) => {
                 // Create a preview from either description or body
                 let preview = item.summary || "";
                 if (!preview && item.content) {
-                    preview = item.content.substring(0, 150) + "...";
+                    preview = item.content;
+                }
+
+                if (preview) {
+                    const doc = new DOMParser().parseFromString(preview, 'text/html');
+                    preview = doc.body.textContent;
+                }
+
+                if (preview.length > 150) {
+                    preview = preview.substring(0, 149) + "\u2026";
                 }
 
                 // Create URL from item.url or fallback
