@@ -23,8 +23,16 @@ const parseFuseFromXML = (xml) => {
         const authors = [];
         for (const author of entry.getElementsByTagName("author")) {
             const name = author.getElementsByTagName("name")[0]?.textContent;
+            const authorObj = { name };
             const uri = author.getElementsByTagName("uri")[0]?.textContent;
-            authors.push({ name, uri });
+            if (uri) {
+                authorObj.uri = uri;
+            }
+            const email = author.getElementsByTagName("email")[0]?.textContent;
+            if (email) {
+                authorObj.email = email;
+            }
+            authors.push(authorObj);
         }
         const link = entry
             .getElementsByTagName("link")[0]
@@ -35,17 +43,17 @@ const parseFuseFromXML = (xml) => {
 
         const tags = Array.from(entry.getElementsByTagName("category"));
         const category = tags
-            .find((tag) => tag.getAttribute("ref") === "category")
-            ?.getAttribute("term");
+            .find((tag) => tag.getAttribute("scheme").indexOf("/category/") >= 0)
+            ?.getAttribute("label");
         const type = tags
-            .find((tag) => tag.getAttribute("ref") === "type")
-            ?.getAttribute("term");
+            .find((tag) => tag.getAttribute("scheme").indexOf("/type/") >= 0)
+            ?.getAttribute("label");
         const status = tags
-            .find((tag) => tag.getAttribute("ref") === "status")
-            ?.getAttribute("term");
+            .find((tag) => tag.getAttribute("scheme").indexOf("/status/") >= 0)
+            ?.getAttribute("label");
 
-        const slug_number = entry.querySelector("token[key='slug_number']")
-            ?.textContent;
+        const slug_number = entry.querySelector("category[term^='tag:eip:']")
+            ?.getAttribute("label");
 
         data.push({
             slug_number,
@@ -108,7 +116,9 @@ const initializeSearch = () => {
                     "link",
                     "slug_number",
                     "summary",
-                    "authors",
+                    "authors.name",
+                    "authors.uri",
+                    "authors.email",
                     "status",
                     "category",
                     "type",
@@ -165,7 +175,7 @@ const createSearchModal = () => {
 };
 
 const slugify = (str) => {
-    return str.toLowerCase().replace(/ /g, "-");
+    return str.toLowerCase().replace(/[^a-zA-Z0-9_-]/g, "-");
 };
 
 // Search function
