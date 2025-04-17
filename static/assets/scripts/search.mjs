@@ -43,13 +43,13 @@ const parseFuseFromXML = (xml) => {
 
         const tags = Array.from(entry.getElementsByTagName("category"));
         const category = tags
-            .find((tag) => tag.getAttribute("scheme").indexOf("/category/") >= 0)
+            .find((tag) => tag.getAttribute("scheme")?.indexOf("/category/") >= 0)
             ?.getAttribute("label");
         const type = tags
-            .find((tag) => tag.getAttribute("scheme").indexOf("/type/") >= 0)
+            .find((tag) => tag.getAttribute("scheme")?.indexOf("/type/") >= 0)
             ?.getAttribute("label");
         const status = tags
-            .find((tag) => tag.getAttribute("scheme").indexOf("/status/") >= 0)
+            .find((tag) => tag.getAttribute("scheme")?.indexOf("/status/") >= 0)
             ?.getAttribute("label");
 
         const slug_number = entry.querySelector("category[term^='tag:eip:']")
