@@ -123,7 +123,7 @@
 			integrity="sha384-/1zmJ1mBdfKIOnwPxpdG6yaRrxP6qu3eVYm0cz2nOx+AcL4d3AqEFrwcqGZVVroG"
 			crossorigin="anonymous"
 		></script>
-		<script defer async src="/assets/scripts/search.mjs" type="module"></script>
+		<script defer async src="{{ get_url(path='/assets/scripts/search.mjs', trailing_slash=false) }}" type="module"></script>
 	</head>
 	<body>
 		{% block nav %}
