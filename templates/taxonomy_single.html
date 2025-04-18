@@ -5,11 +5,12 @@
 {% endblock title %}
 
 {% block rss %}
+{{ super() }}
 {% for feed_filename in config.feed_filenames %}
 <link
 	rel="alternate"
 	type="{% if feed_filename == 'atom.xml' %}application/atom+xml{% else %}application/rss+xml{% endif %}"
-	title="RSS"
+	title="{{ config.title }} ({{ taxonomy.name | title }}: {{ term.name | title }})"
 	href="{{ get_url(path=current_path ~ feed_filename) | safe }}"
 />
 {% endfor %}

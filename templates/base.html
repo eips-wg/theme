@@ -66,7 +66,7 @@
 		<link
 			rel="alternate"
 			type="{% if feed_filename == 'atom.xml' %}application/atom+xml{% else %}application/rss+xml{% endif %}"
-			title="RSS"
+			title="{{ config.title }}"
 			href="{{ get_url(path=feed_filename) | safe }}"
 		/>
 		{% endfor %}

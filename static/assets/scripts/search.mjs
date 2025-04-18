@@ -99,8 +99,15 @@ const initializeSearch = () => {
         });
 
         try {
+            // Find feed URL
+            const link = document.querySelector('link[rel="alternate"][type="application/atom+xml"]');
+            if (!link) {
+                throw Error("could not find feed href");
+            }
+            const feedUrl = link.getAttribute("href");
+
             // Fetch search data
-            const dataPromise = fetch("/atom.xml").then((res) => res.text());
+            const dataPromise = fetch(feedUrl).then((res) => res.text());
 
             // Dynamically import Fuse.js
             const Fuse = await loadScript;
