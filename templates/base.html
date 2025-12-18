@@ -11,7 +11,10 @@
 
 		<title>{% block title %}{{ config.title }}{% endblock title %}</title>
 
-		<link rel="icon" type="image/png" href="{{ get_url(path='/assets/images/favicon.png') }}" />
+		<link rel="icon" type="image/png" href="{{ get_url(path='/assets/images/favicon.png') }}" sizes="16x16" />
+		<link rel="icon" type="image/svg+xml" href="{{ get_url(path='/assets/images/favicon.svg') }}" />
+		<link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png" />
+
 		<meta property="og:site_name" content="{{ config.title }}" />
 		<link property="og:url" href="{{ current_url }}" />
 
