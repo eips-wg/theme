@@ -163,7 +163,7 @@
 			<h1 class="page-heading">
 				{{ macros::eip_number(page=page) }}: {{ page.title }}
 				{% if page.extra.discussions_to %}
-				<a href="{{ page.extra.discussions_to }}" class="no-underline">
+				<a rel="noopener" href="{{ page.extra.discussions_to }}" class="no-underline">
 					<svg
 						role="img"
 						aria-label="Discuss"
@@ -220,7 +220,7 @@
 				<tr>
 					<th scope="row">Discussion Link</th>
 					<td>
-						<a href="{{ page.extra.discussions_to }}" target="__blank"
+						<a rel="noopener" href="{{ page.extra.discussions_to }}" target="_blank"
 							>{{ page.extra.discussions_to }}</a
 						>
 					</td>
@@ -255,7 +255,7 @@
 				<use xlink:href="#bi-megaphone-fill" />
 			</svg>
 			<div class="text-center w-100">
-				<a href="{{ page.extra.discussions_to }}" target="__blank"
+				<a rel="noopener" href="{{ page.extra.discussions_to }}" target="_blank"
 					>This EIP is in the process of being peer-reviewed. If you are
 					interested in this EIP, please participate using this discussion
 					link.</a
