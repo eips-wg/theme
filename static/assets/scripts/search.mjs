@@ -10,6 +10,28 @@ let fuse = null;
 let data = null;
 let fusePromise = null;
 
+const stripTags = (untrusted) => {
+    if (!untrusted) {
+        return untrusted;
+    }
+    return new DOMParser().parseFromString(untrusted, "text/html").body.textContent
+};
+
+const createElement = (localName, attrs, textContent) => {
+    const attributes = attrs || {};
+    const elem = document.createElement(localName);
+
+    for (const [key, value] of Object.entries(attributes)) {
+        elem.setAttribute(key, value);
+    }
+
+    if (textContent) {
+        elem.textContent = textContent;
+    }
+
+    return elem;
+};
+
 const parseFuseFromXML = (xml) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xml, "text/xml");
@@ -38,22 +60,22 @@ const parseFuseFromXML = (xml) => {
             .getElementsByTagName("link")[0]
             ?.getAttribute("href");
         // TODO: Add summary
-        const summary = entry.getElementsByTagName("summary")[0]?.textContent;
-        const content = entry.getElementsByTagName("content")[0]?.textContent;
+        const summary = stripTags(entry.getElementsByTagName("summary")[0]?.textContent);
+        const content = stripTags(entry.getElementsByTagName("content")[0]?.textContent);
 
         const tags = Array.from(entry.getElementsByTagName("category"));
-        const category = tags
+        const category = stripTags(tags
             .find((tag) => tag.getAttribute("scheme")?.indexOf("/category/") >= 0)
-            ?.getAttribute("label");
-        const type = tags
+            ?.getAttribute("label"));
+        const type = stripTags(tags
             .find((tag) => tag.getAttribute("scheme")?.indexOf("/type/") >= 0)
-            ?.getAttribute("label");
-        const status = tags
+            ?.getAttribute("label"));
+        const status = stripTags(tags
             .find((tag) => tag.getAttribute("scheme")?.indexOf("/status/") >= 0)
-            ?.getAttribute("label");
+            ?.getAttribute("label"));
 
-        const slug_number = entry.querySelector("category[term^='tag:eip:']")
-            ?.getAttribute("label");
+        const slug_number = stripTags(entry.querySelector("category[term^='tag:eip:']")
+            ?.getAttribute("label"));
 
         data.push({
             slug_number,
@@ -217,7 +239,8 @@ const performSearch = async (e) => {
             return;
         }
 
-        resultsContainer.innerHTML = results
+        resultsContainer.textContent = '';
+        results
             .map((result) => {
                 const item = result.item;
                 const title = item.title || "Untitled";
@@ -228,11 +251,6 @@ const performSearch = async (e) => {
                     preview = item.content;
                 }
 
-                if (preview) {
-                    const doc = new DOMParser().parseFromString(preview, 'text/html');
-                    preview = doc.body.textContent;
-                }
-
                 if (preview.length > 150) {
                     preview = preview.substring(0, 149) + "\u2026";
                 }
@@ -240,37 +258,60 @@ const performSearch = async (e) => {
                 // Create URL from item.url or fallback
                 const url = item.link || "#";
 
-                const categoryDiv = item.category
-                    ? `<span class="badge text-light tax-label-category tax-term-${slugify(
-                          item.category,
-                      )}">${item.category}</span>`
-                    : "";
-                const statusDiv = item.status
-                    ? `<span class="badge text-light tax-label-status tax-term-${slugify(
-                          item.status,
-                      )}">${item.status}</span>`
-                    : "";
-                const typeDiv = item.type
-                    ? `<span class="badge text-light tax-label-type tax-term-${slugify(
-                          item.type,
-                      )}">${item.type}</span>`
-                    : "";
+                const eAnchor = createElement("a", {"href": url, "class": "search-result"});
 
-                return `
-        <a href="${url}" class="search-result">
-          <div class="search-result-header">
-            <h3>${item.slug_number}: ${title}</h3>
-            <div class="search-result-header-meta">
-              ${categoryDiv}
-              ${statusDiv}
-              ${typeDiv}
-            </div>
-          </div>
-          <p>${preview}</p>
-        </a>
-      `;
+                const eHeader = createElement("div", {"class": "search-result-header"});
+                eAnchor.appendChild(eHeader);
+
+                const eTitle = createElement("h3", {}, `${item.slug_number}: ${title}`);
+                eHeader.appendChild(eTitle);
+
+                const eMeta = createElement("div", {"class": "search-result-header-meta"});
+                eHeader.appendChild(eMeta);
+
+                if (item.category) {
+                    eMeta.appendChild(
+                        createElement(
+                            "span",
+                            {
+                                "class": `badge text-light tax-label-category tax-term-${slugify(item.category)}`,
+                            },
+                            item.category
+                        )
+                    );
+                }
+
+                if (item.status) {
+                    eMeta.appendChild(
+                        createElement(
+                            "span",
+                            {
+                                "class": `badge text-light tax-label-status tax-term-${slugify(item.status)}`,
+                            },
+                            item.status
+                        )
+                    );
+                }
+
+                if (item.type) {
+                    eMeta.appendChild(
+                        createElement(
+                            "span",
+                            {
+                                "class": `badge text-light tax-label-type tax-term-${slugify(item.type)}`,
+                            },
+                            item.type
+                        )
+                    );
+                }
+
+
+                const ePreview = createElement("p", {}, preview);
+                eAnchor.appendChild(ePreview);
+
+                return eAnchor;
             })
-            .join("");
+            .forEach((elem) => resultsContainer.appendChild(elem));
     } catch (error) {
         resultsContainer.innerHTML =
             '<div class="no-results">Error loading search. Please try again.</div>';
