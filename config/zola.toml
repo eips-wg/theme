@@ -39,9 +39,8 @@ light_theme = "github-light"
 dark_theme = "github-dark"
 
 extra_grammars = [
-    "../syntaxes/solidity/Solidity.sublime-syntax",
-    "../syntaxes/abnf/ABNF.sublime-syntax",
-    "../syntaxes/csl-json/CSL-JSON.sublime-syntax",
+    "../syntaxes/abnf/ABNF.json",
+    "../syntaxes/csl-json/CSL-JSON.json",
 ]
 
 bottom_footnotes = true

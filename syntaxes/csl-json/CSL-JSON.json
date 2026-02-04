@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "displayName": "CSL JSON",
+  "name": "csl-json",
+  "scopeName": "source.csl-json",
+  "patterns": [
+    { "include": "source.json" }
+  ]
+}
