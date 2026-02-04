@@ -51,17 +51,17 @@
 			href="{{ get_url(path='/assets/css/style.css', trailing_slash=false) }}"
 		/>
 
-		{% if config.markdown.highlight_code and config.markdown.highlight_theme == "css" %}
+		{% if config.markdown.highlighting and config.markdown.highlighting.style == "class" %}
 		<link
 			rel="stylesheet"
 			type="text/css"
-			href="{{ get_url(path='/assets/css/syntax-theme-dark.css', trailing_slash=false) }}"
+			href="{{ get_url(path='/giallo-dark.css', trailing_slash=false) }}"
 			media="(prefers-color-scheme: dark)" />
 
 		<link
 			rel="stylesheet"
 			type="text/css"
-			href="{{ get_url(path='/assets/css/syntax-theme-light.css', trailing_slash=false) }}"
+			href="{{ get_url(path='/giallo-light.css', trailing_slash=false) }}"
 			media="(prefers-color-scheme: light)" />
 		{% endif %}
 
