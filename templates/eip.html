@@ -240,6 +240,12 @@
 					</td>
 				</tr>
 				{% endif %}
+				{% if page.extra.withdrawal_reason %}
+				<tr>
+					<th scope="row">Withdrawal Reason</th>
+					<td>{{ page.extra.withdrawal_reason }}</td>
+				</tr>
+				{% endif %}
 			</tbody>
 		</table>
 		<br />
