@@ -30,6 +30,8 @@ external_level = "warn"
 
 [markdown]
 
+bottom_footnotes = true
+
 [markdown.highlighting]
 error_on_missing_language = true
 
