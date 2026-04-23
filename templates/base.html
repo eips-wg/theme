@@ -127,9 +127,10 @@
 			integrity="sha384-/1zmJ1mBdfKIOnwPxpdG6yaRrxP6qu3eVYm0cz2nOx+AcL4d3AqEFrwcqGZVVroG"
 			crossorigin="anonymous"
 		></script>
-		<script defer async src="{{ get_url(path='/assets/scripts/search.mjs', trailing_slash=false) }}" type="module"></script>
-	</head>
-	<body>
+			<script defer async src="{{ get_url(path='/assets/scripts/search.mjs', trailing_slash=false) }}" type="module"></script>
+			<script defer src="{{ get_url(path='/assets/scripts/copy-code.mjs', trailing_slash=false) }}" type="module"></script>
+		</head>
+		<body>
 		{% block nav %}
 		<header class="site-header" role="banner">
 			<div class="wrapper">

@@ -104,6 +104,102 @@ pre,code {
   background-color: initial;
 }
 
+.code-copy-wrapper {
+  position: relative;
+}
+
+.code-copy-button {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 999px;
+  background-color: rgba(var(--bs-body-bg-rgb), 0.92);
+  color: var(--bs-secondary-color);
+  box-shadow: 0 0.15rem 0.5rem rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-0.15rem);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.code-copy-wrapper:hover .code-copy-button,
+.code-copy-wrapper:focus-within .code-copy-button {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.code-copy-button:hover,
+.code-copy-button:focus-visible {
+  border-color: #fff;
+}
+
+.code-copy-button:focus-visible {
+  outline: 2px solid var(--bs-code-color);
+  outline-offset: 2px;
+}
+
+.code-copy-button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.18s ease, color 0.18s ease;
+}
+
+.code-copy-button:hover .code-copy-button__icon,
+.code-copy-button:focus-visible .code-copy-button__icon {
+  filter: brightness(1.12);
+  color: #fff;
+}
+
+.code-copy-button__icon svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.code-copy-button__status {
+  display: none;
+  font-size: 0.95rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.code-copy-button[data-copy-state="idle"] .code-copy-button__icon,
+.code-copy-button[data-copy-state="working"] .code-copy-button__icon {
+  display: inline-flex;
+}
+
+.code-copy-button[data-copy-state="success"] .code-copy-button__icon,
+.code-copy-button[data-copy-state="error"] .code-copy-button__icon {
+  display: none;
+}
+
+.code-copy-button[data-copy-state="success"] .code-copy-button__status--success,
+.code-copy-button[data-copy-state="error"] .code-copy-button__status--error {
+  display: inline-flex;
+}
+
+.code-copy-button[data-copy-state="success"] {
+  color: var(--bs-secondary-color);
+}
+
+.code-copy-button[data-copy-state="error"] {
+  color: var(--bs-danger-text-emphasis);
+  border-color: currentColor;
+}
+
 .eiptable .title {
   width: 67%;
 }
