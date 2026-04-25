@@ -6,7 +6,7 @@ let lastFocusedElement;
 let pressedTimer;
 
 const setActiveTool = (target) => {
-    document.querySelectorAll('[data-nav-ui-open="menu"]').forEach((button) => {
+    document.querySelectorAll('[data-nav-ui-open="menu"], [data-nav-ui-open="toc"]').forEach((button) => {
         button.classList.toggle("is-active", button.getAttribute("data-nav-ui-open") === target);
     });
 };
@@ -70,6 +70,24 @@ const buildMenuContent = () => {
     return list;
 };
 
+const buildTocContent = () => {
+    const toc = document.querySelector(".toc");
+    const content = document.createElement("div");
+    content.className = "nav-ui-toc-content";
+
+    if (toc) {
+        content.appendChild(toc.cloneNode(true));
+    }
+
+    content.addEventListener("click", (event) => {
+        if (event.target.closest("a")) {
+            closeModal();
+        }
+    });
+
+    return content;
+};
+
 const triggerSearch = () => {
     const searchLink = document.getElementById("search");
 
@@ -81,6 +99,11 @@ const triggerSearch = () => {
 const openMenuModal = () => {
     setActiveTool("menu");
     openModal("Menu", buildMenuContent());
+};
+
+const openTocModal = () => {
+    setActiveTool("toc");
+    openModal("Table of Contents", buildTocContent());
 };
 
 const bindModal = () => {
@@ -104,6 +127,8 @@ const bindActions = () => {
 
             if (target === "menu") {
                 openMenuModal();
+            } else if (target === "toc") {
+                openTocModal();
             } else if (target === "search") {
                 triggerSearch();
             }

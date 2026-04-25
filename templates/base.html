@@ -192,6 +192,7 @@
 									<path d="M20 20l-3.5-3.5"></path>
 								</svg>
 							</a>
+							{% block desktop_nav_tools %}{% endblock desktop_nav_tools %}
 						</span>
 					</div>
 				</nav>
@@ -208,6 +209,13 @@
 						<path d="M5 12l7-7 7 7"></path>
 					</svg>
 				</button>
+				{% block mobile_toc_button %}
+				<span class="nav-ui-icon-button is-unavailable" aria-hidden="true">
+					<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" aria-hidden="true">
+						<path d="M4.5 7.5c2.9-1.3 5.8-1.5 9-0.7v15.7c-3-0.8-5.9-0.5-9 0.9zM25.5 7.5c-2.9-1.3-5.8-1.5-9-0.7v15.7c3-0.8 5.9-0.5 9 0.9zM15 6.8v16.3"></path>
+					</svg>
+				</span>
+				{% endblock mobile_toc_button %}
 				<button type="button" class="nav-ui-icon-button" data-nav-ui-open="search" aria-label="Search">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 						<circle cx="11" cy="11" r="7"></circle>
