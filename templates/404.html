@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title -%}
+404 Not Found | {{ config.title -}}
+{% endblock title %}
+
+{% block extra_head %}
+<meta property="og:title" content="404 Not Found | {{ config.title }}" />
+<meta property="og:type" content="website" />
+<script type="application/ld+json">
+	{
+		"@type": "WebPage",
+		"url": "{{ get_url(path='/404.html', trailing_slash=false) | safe }}",
+		"name": "404 Not Found | {{ config.title }}",
+		"description": "{{ config.description }}",
+		"@context": "https://schema.org"
+	}
+</script>
+{% endblock extra_head %}
+
+{% block content %}
+<section class="not-found-page" aria-labelledby="not-found-title">
+	<article class="post">
+		<header class="post-header">
+			<p class="post-meta not-found-code">404</p>
+			<h1 class="post-title" id="not-found-title">Page not found</h1>
+		</header>
+		<div class="post-content">
+			<p>The page you requested does not exist or may have moved.</p>
+			<p>You can return to the homepage, browse proposal lists, or use search to find the document you need.</p>
+			<p>
+				<a href="{{ get_url(path='/', trailing_slash=false) }}">Return home</a>
+				<span aria-hidden="true"> · </span>
+				<a href="{{ get_url(path='/status/', trailing_slash=false) }}">Browse proposals</a>
+			</p>
+		</div>
+	</article>
+</section>
+{% endblock content %}

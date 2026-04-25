@@ -16,7 +16,9 @@
 		<link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png" />
 
 		<meta property="og:site_name" content="{{ config.title }}" />
+		{% if current_url %}
 		<link property="og:url" href="{{ current_url }}" />
+		{% endif %}
 
 		{% block extra_head %}
 		<meta property="og:title" content="{{ config.title }}" />
