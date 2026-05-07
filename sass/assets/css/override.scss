@@ -6,6 +6,34 @@
   color: var(--bs-body-color);
 }
 
+.proposal-popover {
+  max-width: min(28rem, calc(100vw - 2rem));
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.proposal-popover .popover-header {
+  font-weight: 600;
+}
+
+.proposal-popover .popover-body {
+  line-height: 1.45;
+}
+
+.proposal-popover-description {
+  margin: 0 0 0.5rem;
+}
+
+.proposal-popover-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.proposal-popover-meta-item {
+  white-space: normal;
+}
+
 @media (prefers-color-scheme: dark) {
   table th {
     background-color: #0f0f0f;
