@@ -77,6 +77,7 @@ a:hover, a:active {
 }
 
 .badge:hover {
+  cursor: pointer;
   filter: brightness(75%);
   transition: all 0.25s ease;
 }
@@ -178,13 +179,20 @@ pre,code {
   content: '🚧 ';
 }
 
-.tax-term-draft, .tax-term-review {
+.badge.text-light.tax-term-draft,
+.badge.text-light.tax-term-review {
   --bs-bg-opacity: 1;
   background-color: rgba(var(--bs-warning-rgb),var(--bs-bg-opacity)) !important;
+  color: #000 !important;
 }
 
 .tax-term-draft::before, .tax-term-review::before {
   content: '⚠️ ';
+}
+
+.tax-term-living {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-primary-rgb),var(--bs-bg-opacity)) !important;
 }
 
 .giallo-l {
