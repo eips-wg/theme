@@ -488,13 +488,13 @@ const addSearchStyles = () => {
 };
 
 const onContentLoaded = () => {
-    // Initialize the search UI (just styles, not the search functionality)
-    addSearchStyles();
-
     // Add click listener to search button if it exists
     const searchButton = document.getElementById("search");
     if (searchButton) {
-        searchButton.addEventListener("click", openSearchModal);
+        searchButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            openSearchModal();
+        });
     }
 };
 
