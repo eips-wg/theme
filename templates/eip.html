@@ -245,6 +245,27 @@
 						{%- endfor %}
 					</td>
 				</tr>
+				{% endif %} {% if page.extra.network_upgrades %}
+				<tr class="network-upgrade-preamble-row">
+					<th scope="row">Network Upgrade</th>
+					<td>
+						{% if page.extra.network_upgrades | length == 1 %}
+						{% for upgrade in page.extra.network_upgrades %}
+						<span class="network-upgrade-membership">
+							{% include "includes/network_upgrade_membership.html" %}
+						</span>
+						{% endfor %}
+						{% else %}
+						<ul class="network-upgrade-membership-list">
+							{% for upgrade in page.extra.network_upgrades %}
+							<li>
+								{% include "includes/network_upgrade_membership.html" %}
+							</li>
+							{% endfor %}
+						</ul>
+						{% endif %}
+					</td>
+				</tr>
 				{% endif %}
 				{% if page.extra.withdrawal_reason %}
 				<tr>

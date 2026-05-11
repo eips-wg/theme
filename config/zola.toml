@@ -62,7 +62,11 @@ banner_links = [
     { label = "ERC", href = "/category/erc/" },
     { label = "Meta", href = "/type/meta/" },
     { label = "Informational", href = "/type/informational/" },
+    { label = "Hardforks", href = "/hardforks/" },
 ]
+
+[extra.section_descriptions.hardforks]
+text = "Hardforks group EIPs by network upgrade and inclusion stage, based on their hardfork Meta EIPs."
 
 [extra.github]
 eip_repository = "https://github.com/ethereum/EIPs"
