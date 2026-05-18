@@ -1,12 +1,14 @@
-import { RESULT_LIMIT } from "./constants.mjs";
+import { PAGE_SIZE } from "./constants.mjs";
 import { searchConfig, validatedSort } from "./config.mjs";
 import { createFilterControls } from "./filters.mjs";
 import { clearElement, setStatus } from "./dom.mjs";
 import { loadPagefindFilters, searchPagefind } from "./loader.mjs";
-import { renderResultList } from "./render.mjs";
+import { createPaginationControls } from "./pagination.mjs";
+import { loadResultData, renderResultDataList } from "./render.mjs";
 import {
     cloneSearchState,
     hasActiveSearchState,
+    normalizePageForResultCount,
     normalizeSearchState,
     parseUrlSearchState,
     pushSearchStateIfNeeded,
@@ -20,6 +22,7 @@ const SHARE_SUCCESS_RESET_MS = 2000;
 const SHARE_FAILURE_RESET_MS = 2500;
 
 let fullSearchRequestId = 0;
+let pageRenderRequestId = 0;
 
 const searchSignature = (state) =>
     JSON.stringify({
@@ -45,14 +48,17 @@ export const initFullSearchPage = () => {
     const filterMount = mount.querySelector("[data-search-page-filters]");
     const status = mount.querySelector("[data-search-page-status]");
     const results = mount.querySelector("[data-search-page-results]");
+    const paginationMount = mount.querySelector("[data-search-page-pagination]");
     const searchButton = form.querySelector("[data-search-page-submit]");
     const shareButton = mount.querySelector("[data-search-share]");
     let committedState = null;
     let draftState = null;
     let filterControls = null;
+    let paginationControls = null;
     let availableFilters = {};
     let currentResults = [];
     let currentTotal = 0;
+    let currentPageCount = 0;
     let currentSignature = null;
     let filtersReady = false;
     let loadingQueryEdited = false;
@@ -62,7 +68,7 @@ export const initFullSearchPage = () => {
 
     const isOutsideFilterCommitExempt = (target) =>
         target instanceof Element &&
-        Boolean(target.closest("[data-search-page-sort]"));
+        Boolean(target.closest("[data-search-page-sort], [data-search-page-pagination]"));
 
     const setShareState = (state) => {
         shareButton.dataset.shareState = state;
@@ -89,8 +95,10 @@ export const initFullSearchPage = () => {
     const clearResults = () => {
         currentResults = [];
         currentTotal = 0;
+        currentPageCount = 0;
         currentSignature = null;
         clearElement(results);
+        paginationControls?.clear();
     };
 
     const syncCommittedControls = () => {
@@ -140,21 +148,38 @@ export const initFullSearchPage = () => {
         setStatus(status, "Search is not available for this build.");
     };
 
-    const renderCurrentResults = async (state) => {
+    const renderCurrentPage = async (state) => {
+        const renderId = ++pageRenderRequestId;
         if (currentTotal === 0) {
             clearElement(results);
+            paginationControls?.clear();
             setStatus(status, noResultsMessage(state));
             shareButton.hidden = false;
             return;
         }
 
-        const shown = await renderResultList(currentResults, results, RESULT_LIMIT);
+        const start = (state.page - 1) * PAGE_SIZE;
+        const end = Math.min(start + PAGE_SIZE, currentTotal);
+        const visibleResults = currentResults.slice(start, end);
+        const data = await loadResultData(visibleResults);
+        if (renderId !== pageRenderRequestId) {
+            return;
+        }
+
+        renderResultDataList(data, results);
         setStatus(
             status,
-            currentTotal > shown
-                ? `Showing ${shown} of ${currentTotal} results.`
+            currentTotal > PAGE_SIZE
+                ? `Showing ${start + 1}-${end} of ${currentTotal} results.`
                 : `${currentTotal} result${currentTotal === 1 ? "" : "s"}.`,
         );
+        paginationControls?.render({
+            page: state.page,
+            pageCount: currentPageCount,
+            total: currentTotal,
+            start,
+            end,
+        });
         shareButton.hidden = false;
     };
 
@@ -165,13 +190,16 @@ export const initFullSearchPage = () => {
 
         if (!hasActiveSearchState(normalized)) {
             ++fullSearchRequestId;
+            ++pageRenderRequestId;
             renderFreshState();
             return;
         }
 
         const requestId = ++fullSearchRequestId;
+        ++pageRenderRequestId;
         setStatus(status, "Loading results...");
         clearElement(results);
+        paginationControls?.clear();
         shareButton.hidden = false;
 
         try {
@@ -183,9 +211,14 @@ export const initFullSearchPage = () => {
             currentResults = response.results;
             currentTotal = response.results.length;
             currentSignature = searchSignature(normalized);
-            committedState = normalized;
+            const pageNormalized = normalizePageForResultCount(normalized, currentTotal, PAGE_SIZE);
+            currentPageCount = pageNormalized.pageCount;
+            committedState = pageNormalized.state;
+            if (pageNormalized.normalized) {
+                replaceUrlIfNeeded(committedState);
+            }
             syncCommittedControls();
-            await renderCurrentResults(committedState);
+            await renderCurrentPage(committedState);
         } catch (error) {
             if (requestId !== fullSearchRequestId) {
                 return;
@@ -207,14 +240,19 @@ export const initFullSearchPage = () => {
 
         if (!hasActiveSearchState(normalized)) {
             ++fullSearchRequestId;
+            ++pageRenderRequestId;
             renderFreshState();
             return;
         }
 
         if (currentSignature === searchSignature(normalized) && currentSignature !== null) {
-            committedState = normalized;
+            const pageNormalized = normalizePageForResultCount(normalized, currentTotal, PAGE_SIZE);
+            committedState = pageNormalized.state;
+            if (pageNormalized.normalized) {
+                replaceUrlIfNeeded(committedState);
+            }
             syncCommittedControls();
-            await renderCurrentResults(committedState);
+            await renderCurrentPage(committedState);
             return;
         }
 
@@ -259,10 +297,25 @@ export const initFullSearchPage = () => {
         applyCommittedState(normalized);
     };
 
+    const commitPage = (page) => {
+        if (!committedState || !hasActiveSearchState(committedState)) {
+            return;
+        }
+        const nextState = cloneSearchState(committedState);
+        nextState.page = page;
+        pushSearchStateIfNeeded(nextState);
+        committedState = nextState;
+        syncCommittedControls();
+        renderCurrentPage(nextState);
+    };
+
     if (!searchConfig.enabled) {
+        paginationControls = createPaginationControls(paginationMount, commitPage);
         renderDisabledState();
         return;
     }
+
+    paginationControls = createPaginationControls(paginationMount, commitPage);
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();

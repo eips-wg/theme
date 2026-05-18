@@ -1,4 +1,5 @@
-export const RESULT_LIMIT = 25;
+export const PAGE_SIZE = 25;
+export const RESULT_LIMIT = PAGE_SIZE;
 export const QUICK_RESULT_LIMIT = 8;
 export const QUICK_SEARCH_DEBOUNCE_MS = 150;
 
