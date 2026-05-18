@@ -1,5 +1,8 @@
 import {
     AUTHOR_MODE_PARAM,
+    CREATED_FROM_PARAM,
+    CREATED_TO_PARAM,
+    CREATED_YEAR_FIELD,
     FILTER_FIELD_CONFIGS,
     FILTER_FIELD_KEYS,
     FILTER_FIELDS,
@@ -14,11 +17,15 @@ const recognizedParams = new Set([
     "q",
     "sort",
     AUTHOR_MODE_PARAM,
+    CREATED_FROM_PARAM,
+    CREATED_TO_PARAM,
     ...FILTER_FIELDS.map((field) => filterUrlParam(field)),
 ]);
 
 export const emptyFilterSelections = () =>
     Object.fromEntries(FILTER_FIELD_KEYS.map((field) => [field, []]));
+
+export const emptyCreatedDateSelection = () => ({ from: null, to: null });
 
 export const defaultFilterModes = () => ({ author: FILTER_MODE_ANY });
 
@@ -33,6 +40,10 @@ export const cloneSearchState = (state) => ({
         ...defaultFilterModes(),
         ...(state.modes || {}),
     },
+    createdDate: {
+        from: state.createdDate?.from || null,
+        to: state.createdDate?.to || null,
+    },
 });
 
 const valuesForField = (availableFilters, field) => {
@@ -42,6 +53,65 @@ const valuesForField = (availableFilters, field) => {
         return new Set(values.filter((value) => field.values.includes(value)));
     }
     return new Set(values);
+};
+
+const isYearValue = (value) => {
+    if (typeof value !== "string" || !/^[0-9]+$/.test(value)) {
+        return false;
+    }
+    const year = Number(value);
+    return Number.isSafeInteger(year) && year > 0;
+};
+
+export const createdYearOptions = (availableFilters) =>
+    Object.keys(availableFilters[CREATED_YEAR_FIELD] || {})
+        .filter(isYearValue)
+        .sort((left, right) => Number(left) - Number(right));
+
+export const createdDateSelectionsEqual = (left, right) =>
+    (left?.from || null) === (right?.from || null) && (left?.to || null) === (right?.to || null);
+
+const normalizeCreatedDateSelection = (selection, availableFilters) => {
+    const requestedFrom = selection?.from || null;
+    const requestedTo = selection?.to || null;
+    const allowedYears = new Set(createdYearOptions(availableFilters));
+    let normalized = false;
+
+    if (!requestedFrom) {
+        return {
+            createdDate: emptyCreatedDateSelection(),
+            normalized: requestedTo !== null,
+        };
+    }
+
+    if (!isYearValue(requestedFrom) || !allowedYears.has(requestedFrom)) {
+        return {
+            createdDate: emptyCreatedDateSelection(),
+            normalized: requestedFrom !== null || requestedTo !== null,
+        };
+    }
+
+    let from = requestedFrom;
+    let to = requestedTo;
+    if (to !== null && (!isYearValue(to) || !allowedYears.has(to))) {
+        to = null;
+        normalized = true;
+    }
+
+    if (to !== null && Number(to) < Number(from)) {
+        [from, to] = [to, from];
+        normalized = true;
+    }
+
+    if (to === from) {
+        to = null;
+        normalized = true;
+    }
+
+    return {
+        createdDate: { from, to },
+        normalized: normalized || from !== requestedFrom || to !== requestedTo,
+    };
 };
 
 const uniqueValues = (values) => {
@@ -57,7 +127,8 @@ const uniqueValues = (values) => {
 };
 
 export const hasSelectedFilters = (state) =>
-    FILTER_FIELD_KEYS.some((field) => (state.filters?.[field] || []).length > 0);
+    FILTER_FIELD_KEYS.some((field) => (state.filters?.[field] || []).length > 0) ||
+    Boolean(state.createdDate?.from);
 
 export const hasActiveSearchState = (state) => state.query.trim() !== "" || hasSelectedFilters(state);
 
@@ -73,6 +144,14 @@ export const normalizeSearchState = (state, availableFilters) => {
             normalized = true;
         }
         filters[field.key] = validValues;
+    }
+
+    const createdDateSelection = normalizeCreatedDateSelection(state.createdDate, availableFilters);
+    if (
+        createdDateSelection.normalized ||
+        !createdDateSelectionsEqual(createdDateSelection.createdDate, state.createdDate)
+    ) {
+        normalized = true;
     }
 
     const modes = defaultFilterModes();
@@ -100,6 +179,7 @@ export const normalizeSearchState = (state, availableFilters) => {
         !hasActiveSearchState({
             query: state.query || "",
             filters,
+            createdDate: createdDateSelection.createdDate,
         })
     ) {
         sort = "relevance";
@@ -113,6 +193,7 @@ export const normalizeSearchState = (state, availableFilters) => {
             page: 1,
             filters,
             modes,
+            createdDate: createdDateSelection.createdDate,
         },
         normalized,
     };
@@ -122,11 +203,17 @@ export const parseUrlSearchState = (availableFilters) => {
     const params = new URLSearchParams(window.location.search);
     let normalized = false;
     const rawFilters = emptyFilterSelections();
+    const rawCreatedFromValues = params.getAll(CREATED_FROM_PARAM);
+    const rawCreatedToValues = params.getAll(CREATED_TO_PARAM);
 
     for (const key of params.keys()) {
         if (!recognizedParams.has(key)) {
             normalized = true;
         }
+    }
+
+    if (rawCreatedFromValues.length > 1 || rawCreatedToValues.length > 1) {
+        normalized = true;
     }
 
     for (const field of FILTER_FIELDS) {
@@ -164,6 +251,10 @@ export const parseUrlSearchState = (availableFilters) => {
             page: 1,
             filters: rawFilters,
             modes,
+            createdDate: {
+                from: rawCreatedFromValues[0] || null,
+                to: rawCreatedToValues[0] || null,
+            },
         },
         availableFilters,
     );
@@ -191,6 +282,12 @@ export const searchStatePath = (state) => {
     for (const field of FILTER_FIELDS) {
         for (const value of normalizedState.filters[field.key] || []) {
             params.append(filterUrlParam(field), value);
+        }
+    }
+    if (normalizedState.createdDate.from) {
+        params.set(CREATED_FROM_PARAM, normalizedState.createdDate.from);
+        if (normalizedState.createdDate.to) {
+            params.set(CREATED_TO_PARAM, normalizedState.createdDate.to);
         }
     }
     if ((normalizedState.filters.author || []).length > 0 && normalizedState.modes.author === FILTER_MODE_ALL) {
@@ -223,6 +320,20 @@ export const pushSearchStateIfNeeded = (state) => {
     return true;
 };
 
+const createdYearsForPagefind = (createdDate) => {
+    if (!createdDate?.from) {
+        return [];
+    }
+
+    const from = Number(createdDate.from);
+    const to = Number(createdDate.to || createdDate.from);
+    const years = [];
+    for (let year = from; year <= to; year += 1) {
+        years.push(String(year));
+    }
+    return years;
+};
+
 export const filtersForPagefind = (state) => {
     const pagefindFilters = {};
     for (const field of FILTER_FIELDS) {
@@ -235,6 +346,10 @@ export const filtersForPagefind = (state) => {
         } else {
             pagefindFilters[filterPagefindField(field)] = { any: values };
         }
+    }
+    const createdYears = createdYearsForPagefind(state.createdDate);
+    if (createdYears.length > 0) {
+        pagefindFilters[CREATED_YEAR_FIELD] = { any: createdYears };
     }
     return pagefindFilters;
 };

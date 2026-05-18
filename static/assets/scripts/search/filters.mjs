@@ -1,4 +1,6 @@
 import {
+    CREATED_DATE_LABEL,
+    CREATED_YEAR_FIELD,
     FILTER_FIELDS,
     FILTER_MODE_ALL,
     FILTER_MODE_ANY,
@@ -7,6 +9,8 @@ import {
 import { createElement, clearElement } from "./dom.mjs";
 import {
     cloneSearchState,
+    createdDateSelectionsEqual,
+    createdYearOptions,
     filterLabel,
 } from "./state.mjs";
 
@@ -22,7 +26,8 @@ const fieldSelectionsEqual = (left, right) =>
 
 const searchFilterStateEqual = (left, right) =>
     fieldSelectionsEqual(left.filters || {}, right.filters || {}) &&
-    left.modes?.author === right.modes?.author;
+    left.modes?.author === right.modes?.author &&
+    createdDateSelectionsEqual(left.createdDate, right.createdDate);
 
 const fieldOptions = (availableFilters, field) => {
     const entries = Object.entries(availableFilters[filterPagefindField(field)] || {});
@@ -44,6 +49,9 @@ const fieldOptions = (availableFilters, field) => {
         .map(([value, count]) => ({ value, count }))
         .sort((left, right) => left.value.localeCompare(right.value));
 };
+
+const createdDateChipLabel = (createdDate) =>
+    createdDate?.to ? `${createdDate.from}-${createdDate.to}` : createdDate?.from;
 
 export const createFilterControls = (container, availableFilters, onDraftChange, options = {}) => {
     let currentState = null;
@@ -82,6 +90,131 @@ export const createFilterControls = (container, availableFilters, onDraftChange,
             return;
         }
         onDraftChange(normalizedState);
+    };
+
+    const buildCreatedDateControl = () => {
+        const years = createdYearOptions(availableFilters);
+        if (years.length === 0) {
+            return null;
+        }
+
+        const root = createElement("section", {
+            class: "search-filter-field search-created-date-field",
+            "data-search-filter-field": CREATED_YEAR_FIELD,
+        });
+        const yearId = "search-filter-created-from";
+        const toId = "search-filter-created-to";
+
+        const heading = createElement("div", { class: "search-filter-label" }, CREATED_DATE_LABEL);
+        const controls = createElement("div", { class: "search-created-date-controls" });
+        const yearControl = createElement("div", { class: "search-created-date-control" });
+        const yearLabel = createElement(
+            "label",
+            { class: "search-created-date-control-label", for: yearId },
+            "Year",
+        );
+        const yearSelect = createElement("select", {
+            id: yearId,
+            class: "search-created-date-select",
+        });
+        const toControl = createElement("div", { class: "search-created-date-control" });
+        const toLabel = createElement("label", { class: "search-created-date-control-label", for: toId }, "To");
+        const toSelect = createElement("select", {
+            id: toId,
+            class: "search-created-date-select",
+            disabled: true,
+        });
+        const summary = createElement("div", {
+            class: "search-filter-summary",
+            "aria-live": "polite",
+        });
+        const chips = createElement("div", { class: "search-filter-chips" });
+        const clearButton = createElement(
+            "button",
+            {
+                class: "search-filter-clear",
+                type: "button",
+            },
+            "Clear created date",
+        );
+
+        const appendYearOptions = (select, includeAny = true) => {
+            if (includeAny) {
+                select.appendChild(createElement("option", { value: "" }, "Any"));
+            } else {
+                select.appendChild(createElement("option", { value: "", disabled: true, hidden: true }, ""));
+            }
+            for (const year of years) {
+                select.appendChild(createElement("option", { value: year }, year));
+            }
+        };
+
+        appendYearOptions(yearSelect);
+        appendYearOptions(toSelect, false);
+        yearControl.append(yearLabel, yearSelect);
+        toControl.append(toLabel, toSelect);
+        controls.append(yearControl, toControl);
+        root.append(heading, controls, summary, chips, clearButton);
+
+        const updateCreatedDate = (createdDate) => {
+            const nextState = cloneSearchState(currentState);
+            nextState.createdDate = createdDate;
+            nextState.page = 1;
+            applyDraftState(nextState);
+        };
+
+        const clearCreatedDate = () => updateCreatedDate({ from: null, to: null });
+
+        const renderSelections = () => {
+            const createdDate = currentState.createdDate || {};
+            const selectedLabel = createdDateChipLabel(createdDate);
+            yearSelect.value = createdDate.from || "";
+            toSelect.disabled = !createdDate.from;
+            toSelect.setAttribute("aria-disabled", createdDate.from ? "false" : "true");
+            toSelect.value = createdDate.from ? createdDate.to || createdDate.from : "";
+            summary.textContent = selectedLabel ? selectedSummary(1) : "No filters selected";
+            clearButton.hidden = !selectedLabel;
+            clearElement(chips);
+            if (!selectedLabel) {
+                return;
+            }
+
+            const chip = createElement("span", { class: "search-filter-chip" });
+            chip.appendChild(createElement("span", { class: "search-filter-chip-label" }, selectedLabel));
+            const remove = createElement(
+                "button",
+                {
+                    class: "search-filter-chip-remove",
+                    type: "button",
+                    "aria-label": `Remove created date ${selectedLabel}`,
+                },
+                "x",
+            );
+            remove.addEventListener("click", clearCreatedDate);
+            chip.appendChild(remove);
+            chips.appendChild(chip);
+        };
+
+        yearSelect.addEventListener("change", () => {
+            if (!yearSelect.value) {
+                clearCreatedDate();
+                return;
+            }
+            updateCreatedDate({ from: yearSelect.value, to: toSelect.value || yearSelect.value });
+        });
+        toSelect.addEventListener("change", () => {
+            if (!yearSelect.value) {
+                clearCreatedDate();
+                return;
+            }
+            updateCreatedDate({ from: yearSelect.value, to: toSelect.value || null });
+        });
+        clearButton.addEventListener("click", clearCreatedDate);
+
+        return {
+            root,
+            render: renderSelections,
+        };
     };
 
     const buildControl = (field) => {
@@ -423,7 +556,8 @@ export const createFilterControls = (container, availableFilters, onDraftChange,
         const visibleFields = FILTER_FIELDS.filter(
             (field) => fieldOptions(availableFilters, field).length > 0,
         );
-        if (visibleFields.length === 0) {
+        const createdDateControl = buildCreatedDateControl();
+        if (visibleFields.length === 0 && !createdDateControl) {
             container.hidden = true;
             return;
         }
@@ -437,6 +571,10 @@ export const createFilterControls = (container, availableFilters, onDraftChange,
             }
             controls.set(field.key, control);
             grid.appendChild(control.root);
+        }
+        if (createdDateControl) {
+            createdDateControl.render();
+            grid.appendChild(createdDateControl.root);
         }
         container.appendChild(grid);
     }
