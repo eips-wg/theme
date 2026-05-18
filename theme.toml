@@ -13,6 +13,10 @@ demo = "https://eips-wg.github.io/eips-theme"
 # Use snake_casing to be consistent with the rest of Zola
 [extra]
 
+[extra.search]
+enabled = false
+base_path = "/"
+
 # The theme author info: you!
 [author]
 name = "Sam Wilson"

@@ -1,0 +1,397 @@
+#!/bin/sh
+set -eu
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+say() {
+    printf '%s\n' "$*"
+}
+
+assert_contains() {
+    file=$1
+    expected=$2
+    message=$3
+
+    if ! grep -Fq "$expected" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_not_contains() {
+    file=$1
+    unexpected=$2
+    message=$3
+
+    if grep -Fq "$unexpected" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_matches() {
+    file=$1
+    expected_pattern=$2
+    message=$3
+
+    if ! grep -Eq "$expected_pattern" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_html_attr_count() {
+    html_root=$1
+    attr=$2
+    expected=$3
+    message=$4
+
+    count=$(
+        find "$html_root" -name '*.html' -exec grep -h -o "$attr" {} + \
+            | wc -l \
+            | tr -d ' '
+    )
+    if [ "$count" != "$expected" ]; then
+        die "$message; expected $expected, found $count"
+    fi
+}
+
+assert_pagefind_artifact() {
+    path_pattern=$1
+    message=$2
+
+    if ! find "$pagefind_dir" -path "$path_pattern" -type f | grep -q .; then
+        die "$message"
+    fi
+}
+
+write_fixture_project() {
+    project_dir=$1
+
+    mkdir -p "$project_dir/content" "$project_dir/themes"
+    ln -s "$theme_root" "$project_dir/themes/eips-theme"
+
+    cat >"$project_dir/config.toml" <<'EOF'
+base_url = "https://example.test/"
+title = "Pagefind Hook Fixture"
+description = "Pagefind hook fixture"
+theme = "eips-theme"
+compile_sass = false
+build_search_index = false
+generate_feeds = false
+taxonomies = [
+    { name = "status" },
+    { name = "category" },
+    { name = "type" },
+]
+
+[extra.github]
+eip_repository = "https://github.com/example/eips"
+
+[extra.taxonomies.status.final]
+tooltip = "Final"
+
+[extra.taxonomies.category.core]
+tooltip = "Core"
+
+[extra.taxonomies.type.standards-track]
+tooltip = "Standards Track"
+EOF
+
+    cat >"$project_dir/content/_index.md" <<'EOF'
++++
+title = "Home"
++++
+
+# Home
+
+UniqueHomeMarker
+EOF
+
+    cat >"$project_dir/content/search.md" <<'EOF'
++++
+title = "Search"
+template = "search.html"
++++
+
+UniqueSearchMarker
+EOF
+
+    cat >"$project_dir/content/about.md" <<'EOF'
++++
+title = "About"
++++
+
+UniqueGenericMarker
+EOF
+
+    cat >"$project_dir/content/01559.md" <<'EOF'
++++
+title = "Fee Market Change"
+description = "A transaction pricing mechanism."
+date = 2021-04-13
+slug = "1559"
+authors = ["Alice", "Bob", "Carol", "Dan"]
+template = "eip.html"
+
+[taxonomies]
+status = ["Final"]
+type = ["Standards Track"]
+category = ["Core"]
+
+[extra]
+proposal_id = "EIP-1559"
+prefix = "EIP"
+number = 1559
+status = "Final"
+type = "Standards Track"
+category = "Core"
+withdrawal_reason = "UniquePreambleMarker"
+
+[[extra.author_details]]
+name = "Alice"
+email = "alice@example.com"
+display = "Alice <alice@example.com>"
+
+[[extra.author_details]]
+name = "Bob"
+github = "bob"
+display = "Bob (@bob)"
+
+[[extra.author_details]]
+name = "Carol"
+github = "carol"
+email = "carol@example.com"
+display = "Carol (@carol) <carol@example.com>"
+
+[[extra.author_details]]
+name = "Dan"
+display = "Dan"
++++
+
+## Abstract
+
+PhaseFourBodyMarker
+
+## Motivation
+
+This document should be searchable.
+EOF
+}
+
+build_fixture_project() {
+    project_dir=$1
+    output_dir=$2
+
+    (cd "$project_dir" && "$zola" build --force -o "$output_dir" >/dev/null)
+}
+
+assert_no_pagefind_browser_assets() {
+    html_file=$1
+
+    assert_not_contains "$html_file" "pagefind.js" "Phase 4 must not import pagefind.js from rendered pages"
+    assert_not_contains "$html_file" "pagefind-ui.js" "Phase 4 must not import Pagefind UI JavaScript"
+    assert_not_contains "$html_file" "pagefind-modular-ui.js" "Phase 4 must not import Pagefind modular UI JavaScript"
+    assert_not_contains "$html_file" "pagefind-highlight.js" "Phase 4 must not import Pagefind highlight JavaScript"
+    assert_not_contains "$html_file" "pagefind-ui.css" "Phase 4 must not import Pagefind UI CSS"
+    assert_not_contains "$html_file" "pagefind-highlight.css" "Phase 4 must not import Pagefind highlight CSS"
+}
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+theme_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+zola=${ZOLA:-zola}
+pagefind=${PAGEFIND:-pagefind}
+node=${NODE:-node}
+
+command -v "$zola" >/dev/null 2>&1 || die "zola is required on PATH"
+command -v "$pagefind" >/dev/null 2>&1 || die "pagefind is required on PATH"
+command -v "$node" >/dev/null 2>&1 || die "node is required on PATH"
+
+tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/eips-theme-pagefind-hooks.XXXXXX")
+trap 'rm -rf "$tmp_root"' EXIT INT HUP TERM
+
+fixture_project=$tmp_root/project
+fixture_output=$tmp_root/output
+write_fixture_project "$fixture_project"
+build_fixture_project "$fixture_project" "$fixture_output"
+
+proposal_html=$fixture_output/1559/index.html
+search_html=$fixture_output/search/index.html
+home_html=$fixture_output/index.html
+generic_html=$fixture_output/about/index.html
+taxonomy_html=$fixture_output/category/core/index.html
+
+[ -f "$proposal_html" ] || die "proposal fixture did not render /1559/"
+[ -f "$search_html" ] || die "search fixture did not render /search/"
+[ -f "$home_html" ] || die "home fixture did not render /"
+[ -f "$generic_html" ] || die "generic fixture did not render /about/"
+[ -f "$taxonomy_html" ] || die "taxonomy fixture did not render /category/core/"
+
+assert_html_attr_count "$fixture_output" 'data-pagefind-body' 1 "only the proposal page should carry data-pagefind-body"
+assert_contains "$proposal_html" '<article class="home" data-pagefind-body>' "proposal page must put data-pagefind-body on the proposal article"
+assert_contains "$proposal_html" 'EIP-1559: Fee Market Change' "proposal body must include the proposal id and title"
+assert_contains "$proposal_html" 'PhaseFourBodyMarker' "proposal body must include rendered proposal markdown content"
+assert_not_contains "$search_html" 'data-pagefind-body' "/search/ must not carry data-pagefind-body"
+assert_not_contains "$home_html" 'data-pagefind-body' "home must not carry data-pagefind-body"
+assert_not_contains "$generic_html" 'data-pagefind-body' "generic pages must not carry data-pagefind-body"
+assert_not_contains "$taxonomy_html" 'data-pagefind-body' "taxonomy pages must not carry data-pagefind-body"
+
+assert_contains "$proposal_html" 'class="h5" data-pagefind-ignore' "proposal badge row must be ignored"
+assert_contains "$proposal_html" 'class="table table-borderless preamble" data-pagefind-ignore' "proposal preamble table must be ignored"
+assert_contains "$proposal_html" '<nav class="toc" data-pagefind-ignore>' "proposal ToC must be ignored"
+assert_contains "$proposal_html" '<section data-pagefind-ignore>' "proposal citation block must be ignored"
+assert_not_contains "$proposal_html" '<header class="site-header" role="banner" data-pagefind-body' "site nav must not be marked as a Pagefind body"
+assert_not_contains "$proposal_html" '<footer class="site-footer h-card" data-pagefind-body' "site footer must not be marked as a Pagefind body"
+
+assert_contains "$proposal_html" 'data-pagefind-filter="proposal_category:Core"' "proposal category filter must render from page metadata"
+assert_not_contains "$proposal_html" 'data-pagefind-filter="prefix:' "prefix filter must not render"
+assert_not_contains "$proposal_html" 'data-pagefind-filter="type:' "type filter must not render"
+assert_not_contains "$proposal_html" 'data-pagefind-filter="category:' "category filter must not render"
+assert_contains "$proposal_html" 'data-pagefind-filter="status:Final"' "status filter must render from page metadata"
+assert_contains "$proposal_html" 'data-pagefind-filter="created_year:2021"' "created year filter must render from page date"
+assert_contains "$proposal_html" 'data-pagefind-filter="author[data-pagefind-value]" data-pagefind-value="Alice"' "author filters must render from author names"
+assert_contains "$proposal_html" 'data-pagefind-filter="author[data-pagefind-value]" data-pagefind-value="Bob"' "author filters must render multiple author values"
+if grep -Eq 'data-pagefind-filter="author\[data-pagefind-value\]" data-pagefind-value="[^"]*(@|mailto:|github|https?://|&lt;|<)' "$proposal_html"; then
+    die "author filter values must not include email, GitHub, or URL identity data"
+fi
+
+assert_contains "$proposal_html" 'data-pagefind-meta="proposal:EIP-1559"' "proposal id metadata must render"
+assert_contains "$proposal_html" 'data-pagefind-meta="title[data-pagefind-value]" data-pagefind-value="EIP-1559: Fee Market Change"' "title metadata must render via attribute capture"
+assert_contains "$proposal_html" 'data-pagefind-meta="description[data-pagefind-value]" data-pagefind-value="A transaction pricing mechanism."' "description metadata must render via attribute capture"
+assert_contains "$proposal_html" 'data-pagefind-meta="authors[data-pagefind-value]"' "authors display metadata must render via attribute capture"
+assert_contains "$proposal_html" 'data-pagefind-meta="created:2021-04-13"' "created metadata must render"
+assert_contains "$proposal_html" 'data-pagefind-sort="number:1559"' "proposal number sort must render"
+assert_contains "$proposal_html" 'data-pagefind-sort="created:2021-04-13"' "created sort must render"
+
+assert_no_pagefind_browser_assets "$proposal_html"
+assert_no_pagefind_browser_assets "$search_html"
+
+pagefind_log=$tmp_root/pagefind.log
+"$pagefind" --site "$fixture_output" --output-subdir pagefind --force-language en --verbose >"$pagefind_log" 2>&1
+pagefind_dir=$fixture_output/pagefind
+
+[ -f "$pagefind_dir/pagefind.js" ] || die "Pagefind must write pagefind.js"
+[ -f "$pagefind_dir/pagefind-entry.json" ] || die "Pagefind must write pagefind-entry.json"
+assert_pagefind_artifact "$pagefind_dir/*.pf_meta" "Pagefind must write metadata index artifacts"
+assert_pagefind_artifact "$pagefind_dir/fragment/*.pf_fragment" "Pagefind must write fragment artifacts"
+assert_pagefind_artifact "$pagefind_dir/index/*.pf_index" "Pagefind must write word index artifacts"
+assert_pagefind_artifact "$pagefind_dir/filter/*.pf_filter" "Pagefind must write filter artifacts"
+assert_contains "$pagefind_log" 'Found a data-pagefind-body element on the site.' "Pagefind must detect explicit body hooks"
+assert_contains "$pagefind_log" 'Indexed 1 page' "Pagefind must index exactly one proposal page"
+assert_contains "$pagefind_log" 'Indexed 4 filter' "Pagefind must index the proposal filter fields"
+assert_contains "$pagefind_log" 'Indexed 2 sort' "Pagefind must index the Phase 4 sort fields"
+
+SITE="$fixture_output" "$node" --input-type=module <<'NODE'
+import { readFile } from "node:fs/promises";
+
+const site = process.env.SITE;
+
+function fail(message) {
+  console.error(`error: ${message}`);
+  process.exit(1);
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    fail(message);
+  }
+}
+
+globalThis.fetch = async (url) => {
+  const data = await readFile(new URL(String(url)));
+  return {
+    arrayBuffer: async () =>
+      data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+    json: async () => JSON.parse(data.toString("utf8")),
+  };
+};
+
+const pagefind = await import(`file://${site}/pagefind/pagefind.js`);
+await pagefind.options({ basePath: `file://${site}/pagefind/` });
+
+async function resultData(term) {
+  const response = await pagefind.search(term);
+  return Promise.all(response.results.map((result) => result.data()));
+}
+
+const proposalResults = await resultData("PhaseFourBodyMarker");
+assert(proposalResults.length === 1, "proposal body marker should return exactly one result");
+const proposal = proposalResults[0];
+assert(proposal.url.includes("/1559/"), "proposal result URL should include /1559/");
+assert(proposal.meta.proposal === "EIP-1559", "proposal id metadata should survive indexing");
+assert(proposal.meta.title === "EIP-1559: Fee Market Change", "title metadata should survive indexing");
+assert(
+  proposal.meta.description === "A transaction pricing mechanism.",
+  "description metadata should survive indexing",
+);
+assert(proposal.meta.status === "Final", "status metadata should survive indexing");
+assert(proposal.meta.type === "Standards Track", "type metadata should survive indexing");
+assert(proposal.meta.category === "Core", "category metadata should survive indexing");
+assert(proposal.meta.created === "2021-04-13", "created metadata should survive indexing");
+for (const display of [
+  "Alice <alice@example.com>",
+  "Bob (@bob)",
+  "Carol (@carol) <carol@example.com>",
+  "Dan",
+]) {
+  assert(
+    proposal.meta.authors.includes(display),
+    `authors display metadata should include ${display}`,
+  );
+}
+
+const expectedFilters = {
+  proposal_category: ["Core"],
+  status: ["Final"],
+  created_year: ["2021"],
+  author: ["Alice", "Bob", "Carol", "Dan"],
+};
+for (const removedFilter of ["prefix", "type", "category"]) {
+  assert(
+    proposal.filters[removedFilter] === undefined,
+    `${removedFilter} must not survive as a Pagefind filter`,
+  );
+}
+for (const [filter, expectedValues] of Object.entries(expectedFilters)) {
+  assert(Array.isArray(proposal.filters[filter]), `${filter} filter should exist`);
+  for (const value of expectedValues) {
+    assert(
+      proposal.filters[filter].includes(value),
+      `${filter} filter should include ${value}`,
+    );
+  }
+}
+for (const value of proposal.filters.author) {
+  assert(!value.includes("@"), "author filter values must not include email or GitHub handles");
+  assert(!value.includes("github"), "author filter values must not include GitHub URLs");
+  assert(!value.includes("mailto:"), "author filter values must not include mailto URLs");
+  assert(!value.includes("http:"), "author filter values must not include URLs");
+  assert(!value.includes("https:"), "author filter values must not include URLs");
+  assert(!value.includes("<"), "author filter values must not include email brackets");
+}
+
+const absentTerms = [
+  ["UniqueSearchMarker", "/search/"],
+  ["UniqueHomeMarker", "home"],
+  ["UniqueGenericMarker", "generic page"],
+  ["Proposals by category", "taxonomy page"],
+  ["UniquePreambleMarker", "preamble table"],
+  ["Table of Contents", "table of contents"],
+  ["Online serial", "citation block"],
+  ["Subscribe", "footer"],
+  ["Toggle Navigation", "nav"],
+];
+for (const [term, label] of absentTerms) {
+  const results = await resultData(term);
+  assert(results.length === 0, `${label} should not be indexed by Pagefind`);
+}
+
+console.log(
+  JSON.stringify({
+    indexedProposal: proposal.url,
+    absent: absentTerms.map(([, label]) => label),
+  }),
+);
+NODE
+
+say "Pagefind indexing hook checks passed"
