@@ -296,6 +296,7 @@ search_modal=$search_modules_dir/modal.mjs
 search_filters=$search_modules_dir/filters.mjs
 search_pagination=$search_modules_dir/pagination.mjs
 search_state=$search_modules_dir/state.mjs
+search_storage=$search_modules_dir/storage.mjs
 search_css=$theme_root/sass/assets/css/search.scss
 search_share_svg=$theme_root/static/assets/images/search-share.svg
 search_template=$theme_root/templates/search.html
@@ -340,6 +341,7 @@ for source_file in \
     "$search_modal" \
     "$search_filters" \
     "$search_pagination" \
+    "$search_storage" \
     "$search_state"
 do
     assert_not_contains "$source_file" "pagefind.js" "Pagefind browser import must stay inside loader.mjs"
@@ -359,34 +361,29 @@ assert_contains "$search_loader" "excerptLength: 45" "loader module must configu
 assert_contains "$search_loader" "pagefind.init()" "loader module must initialize Pagefind once through the shared loader"
 assert_contains "$search_loader" "pagefind.filters()" "loader module must expose Pagefind filter loading"
 assert_contains "$search_loader" "pagefind.search(query, searchOptions)" "loader module must own Pagefind search execution"
+assert_contains "$search_storage" 'STORAGE_KEY = "eips.search"' "storage module must own the eips.search key"
+assert_contains "$search_storage" "version: STORAGE_VERSION" "storage module must write the versioned envelope"
+assert_contains "$search_storage" "lastUrl: canonicalUrl" "storage module must write only the canonical relative URL"
+assert_contains "$search_storage" "updatedAt: updatedAt.toISOString()" "storage module must write updatedAt as an ISO timestamp"
+assert_contains "$search_storage" "expiresAt: expiresAt.toISOString()" "storage module must write expiresAt as an ISO timestamp"
+assert_contains "$search_storage" "24 * 60 * 60 * 1000" "storage module must expire the last search URL after 24 hours"
+assert_contains "$search_storage" "window.localStorage.getItem(STORAGE_KEY)" "storage module must guard localStorage reads"
+assert_contains "$search_storage" "window.localStorage.setItem(STORAGE_KEY" "storage module must guard localStorage writes"
+assert_contains "$search_storage" "window.localStorage.removeItem(STORAGE_KEY)" "storage module must guard localStorage clears"
+assert_contains "$search_storage" "parseSearchParamsState(parsedUrl.searchParams, availableFilters)" "storage module must reuse the search URL parser"
+assert_contains "$search_storage" "searchStatePath(parsedState.state)" "storage module must return normalized canonical URLs"
+assert_contains "$search_storage" "parsedUrl.pathname !== searchPath()" "storage module must validate the generated search route"
+assert_contains "$search_storage" "storedSearch.version !== STORAGE_VERSION" "storage module must ignore unsupported versions"
+assert_contains "$search_storage" "expiresAt <= Date.now()" "storage module must reject expired entries"
+assert_not_contains "$search_storage" "loader.mjs" "storage module must not import the Pagefind loader"
+assert_not_contains "$search_storage" "render.mjs" "storage module must not import result rendering"
+assert_not_contains "$search_storage" "window.location.href" "storage module must not store absolute current URLs"
+assert_not_contains "$search_storage" "result payload" "storage module must not store Pagefind result payloads"
+assert_not_contains "$search_storage" 'addEventListener("storage"' "storage module must not register cross-tab storage listeners"
+assert_not_contains "$search_storage" "addEventListener('storage'" "storage module must not register cross-tab storage listeners"
 assert_contains "$search_render" "excerpt.innerHTML = data.excerpt" "render module must render Pagefind excerpt highlights"
 assert_contains "$search_constants" '"number-asc": { number: "asc" }' "sort constants must define proposal number ascending sort"
 assert_contains "$search_constants" '"created-desc": { created: "desc" }' "sort constants must define created date descending sort"
-assert_contains "$search_modal" "Quick Search Proposals" "quick search modal must use the final heading"
-assert_contains "$search_modal" "Enter keyword or phrase" "quick search modal must use keyword/phrase placeholder copy"
-assert_contains "$search_constants" 'key: "author"' "filter constants must define the author field"
-assert_contains "$search_state" "AUTHOR_MODE_PARAM" "state module must own author mode URL state"
-assert_contains "$search_state" "pagefindFilters.author = values" "state module must encode author AND filters as arrays"
-assert_contains "$search_filters" 'role: "combobox"' "filter module must render custom combobox controls"
-assert_contains "$search_filters" 'aria-label": `Remove ${filterLabel(field.key).toLowerCase()} ${value}`' "filter chips must have specific accessible remove labels"
-assert_contains "$search_filters" 'class: "search-filter-toggle-icon"' "filter toggles must use the chevron icon hook"
-assert_contains "$search_filters" '"Choose operator"' "author filter must label the operator control"
-assert_contains "$search_filters" '"And"' "author filter must expose the AND operator label"
-assert_contains "$search_filters" '"Or"' "author filter must expose the OR operator label"
-assert_not_contains "$search_filters" "Any author" "author operator labels must stay concise"
-assert_not_contains "$search_filters" "All authors" "author operator labels must stay concise"
-assert_contains "$search_css" "max-height: min(50vh, 28rem)" "filter dropdowns must be capped around 50vh"
-assert_contains "$search_css" "top: 4.6rem" "filter dropdowns must keep a stable overlay position"
-assert_contains "$search_css" '.search-filter-toggle[aria-expanded="true"] .search-filter-toggle-icon::before' "filter chevrons must flip when open"
-assert_contains "$search_css" ".search-result-link:hover *" "result hover must suppress broad underline styling"
-assert_contains "$search_css" ".search-result-link:hover .search-result-title" "result hover must underline only the title"
-assert_contains "$search_css" "max-height: 70vh" "search results must use a vertical scroll container"
-assert_contains "$search_css" '.search-share-button[data-share-state="success"]' "share button must expose success state styling"
-assert_contains "$search_css" '.search-share-button[data-share-state="error"]' "share button must expose error state styling"
-assert_contains "$search_page" "SHARE_SUCCESS_RESET_MS" "share button success state must reset after a short delay"
-assert_contains "$search_page" "shareButton.dataset.shareState" "share button state must be controlled by page script"
-assert_contains "$search_share_svg" '<symbol id="search-share"' "share icon asset must expose the search-share symbol"
-assert_contains "$search_share_svg" 'currentColor' "share icon asset must inherit button color"
 assert_contains "$search_constants" 'PROPOSAL_CATEGORY_KEY = "proposalCategory"' "filter constants must define the proposalCategory URL key"
 assert_contains "$search_constants" 'PROPOSAL_CATEGORY_FIELD = "proposal_category"' "filter constants must define the proposal_category Pagefind field"
 assert_contains "$search_constants" 'label: "Proposal Category"' "filter constants must define the Proposal Category field"
@@ -406,6 +403,9 @@ assert_contains "$search_state" "CREATED_FROM_PARAM" "state module must own crea
 assert_contains "$search_state" "CREATED_TO_PARAM" "state module must own createdTo URL state"
 assert_contains "$search_state" "pagefindFilters[CREATED_YEAR_FIELD] = { any: createdYears }" "state module must encode created year filters as Pagefind OR filters"
 assert_contains "$search_state" "for (let year = from; year <= to; year += 1)" "state module must expand created year ranges inclusively"
+assert_contains "$search_state" "parseSearchParamsState = (params, availableFilters)" "state module must expose parser helper for stored URLs"
+assert_contains "$search_state" "parseUrlSearchState = (availableFilters) =>" "state module URL parser must wrap the parameter parser"
+assert_contains "$search_state" "searchParamsCanRestoreLastSearch" "state module must identify restore-eligible non-active URL params"
 assert_contains "$search_state" "pushSearchStateIfNeeded" "state module must avoid duplicate clean-route history entries"
 assert_contains "$search_filters" 'role: "combobox"' "filter module must render custom combobox controls"
 assert_contains "$search_template" "search-filter-grid-loading" "search template must render loading filter shells before JS starts"
@@ -452,7 +452,17 @@ assert_not_contains "$search_css" ".$pending_token" "draft state must not render
 assert_contains "$search_css" ".search-result-link:hover *" "result hover must suppress broad underline styling"
 assert_contains "$search_css" ".search-result-link:hover .search-result-title" "result hover must underline only the title"
 assert_contains "$search_css" "max-height: 70vh" "search results must use a vertical scroll container"
+assert_contains "$search_css" '.search-share-button[data-share-state="success"]' "share button must expose success state styling"
+assert_contains "$search_css" '.search-share-button[data-share-state="error"]' "share button must expose error state styling"
+assert_contains "$search_page" "SHARE_SUCCESS_RESET_MS" "share button success state must reset after a short delay"
+assert_contains "$search_page" "shareButton.dataset.shareState" "share button state must be controlled by page script"
 assert_contains "$search_page" "let draftState = null" "full search page must keep draft state separate from committed state"
+assert_contains "$search_page" "readLastSearchUrl(availableFilters)" "full search page must attempt last-search restore after filters load"
+assert_contains "$search_page" "history.replaceState({ buildEipsSearch: true }, \"\", restoredUrl)" "last-search restore must use replaceState"
+assert_contains "$search_page" "writeLastSearchUrl(searchStatePath" "active committed full-search state must refresh storage"
+assert_contains "$search_page" "clearLastSearch()" "inactive committed full-search state must clear storage when required"
+assert_contains "$search_page" "storage: \"clear-inactive\"" "empty committed search and popstate must clear storage"
+assert_contains "$search_page" "storage: hasActiveSearchState(committedState) ? \"write-active\" : \"none\"" "initial inactive load must not clear unsupported-version storage"
 assert_not_contains "$search_page" "renderLoadingFilterControls(filterMount)" "full search page must keep initial loading shells in the template"
 assert_contains "$search_page" "sortControl.disabled = true" "sort control must be disabled while Pagefind filter data loads"
 assert_contains "$search_page" "pendingSearchSubmit" "full search page must capture Search submissions before hydration"
@@ -462,6 +472,185 @@ assert_contains "$search_page" "commitDraftSearch" "full search page must commit
 assert_contains "$search_page" "filterControls?.commitOpen()" "Search action must accept any open staged dropdown before committing"
 assert_contains "$search_page" "hasActiveSearchState(committedState)" "sort and page actions must operate on committed active searches"
 assert_not_contains "$search_page" "commitFilters" "filter changes must not immediately commit URL/search state"
+assert_not_contains "$search_page" "$storage_token" "page module must use the storage module instead of direct localStorage"
+assert_not_contains "$search_page" "Search URL copied." "share copy feedback must not replace the main result status"
+assert_not_contains "$search_page" "Search URL is ready in the address bar." "share copy failure feedback must not replace the main result status"
+assert_not_contains "$search_config" "availableFilters" "config parser must not be extended for Phase 7 storage"
+assert_contains "$search_share_svg" '<symbol id="search-share"' "share icon asset must expose the search-share symbol"
+assert_contains "$search_share_svg" 'currentColor' "share icon asset must inherit button color"
+
+THEME_ROOT="$theme_root" "$node" --input-type=module <<'NODE'
+import { pathToFileURL } from "node:url";
+
+function fail(message) {
+  console.error(`error: ${message}`);
+  process.exit(1);
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    fail(message);
+  }
+}
+
+const storedValues = new Map();
+const removedKeys = [];
+const searchConfig = {
+  enabled: true,
+  base_path: "/EIPs/",
+  bundle_path: "/EIPs/pagefind/",
+};
+
+globalThis.document = {
+  getElementById(id) {
+    if (id === "build-eips-search-config") {
+      return { textContent: JSON.stringify(searchConfig) };
+    }
+    return null;
+  },
+};
+globalThis.window = {
+  location: {
+    origin: "https://example.test",
+    pathname: "/EIPs/search/",
+    search: "",
+  },
+  localStorage: {
+    getItem(key) {
+      return storedValues.has(key) ? storedValues.get(key) : null;
+    },
+    setItem(key, value) {
+      storedValues.set(key, String(value));
+    },
+    removeItem(key) {
+      removedKeys.push(key);
+      storedValues.delete(key);
+    },
+  },
+};
+globalThis.history = {
+  replaceState() {},
+  pushState() {},
+};
+
+const moduleRoot = pathToFileURL(`${process.env.THEME_ROOT}/static/assets/scripts/search/`).href;
+const state = await import(new URL("state.mjs", moduleRoot));
+const storage = await import(new URL("storage.mjs", moduleRoot));
+
+const availableFilters = {
+  proposal_category: { ERC: 2, Core: 3, Meta: 1 },
+  status: { Draft: 4, Review: 1 },
+  author: { Alice: 3, Bob: 2 },
+  created_year: { "2021": 2, "2022": 2, "2023": 1, "2024": 1 },
+};
+const storageKey = "eips.search";
+
+const resetStorage = (value) => {
+  storedValues.clear();
+  removedKeys.length = 0;
+  if (value !== undefined) {
+    storedValues.set(storageKey, value);
+  }
+};
+
+const storeEnvelope = (overrides = {}) => {
+  const updatedAt = new Date(Date.now() - 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  resetStorage(
+    JSON.stringify({
+      version: 1,
+      lastUrl: "/EIPs/search/?q=1559&proposalCategory=Core&sort=number-desc",
+      updatedAt,
+      expiresAt,
+      ...overrides,
+    }),
+  );
+};
+
+const storedEnvelope = () => JSON.parse(storedValues.get(storageKey));
+
+storage.writeLastSearchUrl("/EIPs/search/?q=1559&proposalCategory=Core&sort=number-desc");
+let payload = storedEnvelope();
+assert(Object.keys(payload).sort().join(",") === "expiresAt,lastUrl,updatedAt,version", "storage payload must contain only the expected envelope fields");
+assert(payload.version === 1, "storage payload must use version 1");
+assert(payload.lastUrl === "/EIPs/search/?q=1559&proposalCategory=Core&sort=number-desc", "storage payload must store the canonical relative URL");
+assert(!payload.lastUrl.startsWith("http"), "storage payload must not store absolute URLs");
+assert(Date.parse(payload.updatedAt) < Date.parse(payload.expiresAt), "storage payload must expire after it is updated");
+
+storeEnvelope();
+assert(
+  storage.readLastSearchUrl(availableFilters) === "/EIPs/search/?q=1559&sort=number-desc&proposalCategory=Core",
+  "stored last search URL must restore as a normalized canonical URL",
+);
+assert(storedValues.has(storageKey), "valid stored search must not be deleted");
+
+for (const [description, override] of [
+  ["expired entries", { expiresAt: new Date(Date.now() - 1000).toISOString() }],
+  ["missing lastUrl", { lastUrl: undefined }],
+  ["unparsable updatedAt", { updatedAt: "not-a-date" }],
+  ["unparsable expiresAt", { expiresAt: "not-a-date" }],
+  ["wrong route", { lastUrl: "/EIPs/not-search/?q=1559" }],
+  ["hash fragments", { lastUrl: "/EIPs/search/?q=1559#section" }],
+  ["absolute URLs", { lastUrl: "https://example.test/EIPs/search/?q=1559" }],
+  ["protocol-relative URLs", { lastUrl: "//example.test/EIPs/search/?q=1559" }],
+  ["normalized empty searches", { lastUrl: "/EIPs/search/?proposalCategory=Missing" }],
+]) {
+  storeEnvelope(override);
+  assert(storage.readLastSearchUrl(availableFilters) === null, `storage must reject ${description}`);
+  assert(!storedValues.has(storageKey), `storage must delete rejected version 1 entry for ${description}`);
+}
+
+resetStorage("{not json");
+assert(storage.readLastSearchUrl(availableFilters) === null, "storage must reject malformed JSON");
+assert(!storedValues.has(storageKey), "storage must delete malformed JSON");
+
+storeEnvelope({ version: 2 });
+assert(storage.readLastSearchUrl(availableFilters) === null, "storage must ignore unsupported versions");
+assert(storedValues.has(storageKey), "storage must not delete unsupported versions");
+
+storage.clearLastSearch();
+assert(!storedValues.has(storageKey), "clearLastSearch must remove the stored search");
+
+let parsed = state.parseSearchParamsState(
+  new URLSearchParams("q=test&type=Meta&category=Core&prefix=ERC&proposalCategory=Core"),
+  availableFilters,
+);
+assert(parsed.normalized, "old prefix/type/category URL params must normalize away");
+assert(parsed.state.query === "test", "normalization must preserve valid query text");
+assert(parsed.state.filters.proposalCategory.join(",") === "Core", "normalization must preserve valid proposalCategory values");
+
+parsed = state.parseSearchParamsState(new URLSearchParams("prefix=ERC"), availableFilters);
+assert(parsed.normalized, "legacy prefix-only URLs must normalize");
+assert(!state.hasActiveSearchState(parsed.state), "legacy prefix-only URLs must not remain active searches");
+
+parsed = state.parseSearchParamsState(new URLSearchParams("createdFrom=2024&createdTo=2021"), availableFilters);
+assert(parsed.normalized, "reversed created date range must normalize");
+assert(parsed.state.createdDate.from === "2021" && parsed.state.createdDate.to === "2024", "created date range must normalize ascending");
+
+parsed = state.parseSearchParamsState(new URLSearchParams("createdFrom=2022&createdTo=2022"), availableFilters);
+assert(parsed.normalized, "same-year created date range must normalize");
+assert(parsed.state.createdDate.from === "2022" && parsed.state.createdDate.to === null, "same-year created date range must collapse to a single year");
+
+parsed = state.parseSearchParamsState(new URLSearchParams("createdFrom=1900&createdTo=2022"), availableFilters);
+assert(parsed.normalized, "out-of-range created date values must normalize");
+assert(!parsed.state.createdDate.from && !parsed.state.createdDate.to, "out-of-range created date values must be dropped");
+
+parsed = state.parseSearchParamsState(new URLSearchParams("author=Alice&authorMode=all"), availableFilters);
+assert(parsed.state.modes.author === "all", "author all mode must be preserved when author values exist");
+assert(state.filtersForPagefind(parsed.state).author.join(",") === "Alice", "author all mode must encode Pagefind AND array");
+
+parsed = state.parseSearchParamsState(new URLSearchParams("authorMode=all"), availableFilters);
+assert(parsed.normalized, "authorMode alone must normalize");
+assert(parsed.state.modes.author === "any", "authorMode alone must reset to default");
+assert(!state.hasActiveSearchState(parsed.state), "authorMode alone must not be active");
+
+assert(state.searchParamsCanRestoreLastSearch(new URLSearchParams("")), "clean search route should be eligible for last-search restore");
+assert(state.searchParamsCanRestoreLastSearch(new URLSearchParams("sort=created-desc&page=2&authorMode=all")), "non-active hint params should be eligible for last-search restore");
+assert(!state.searchParamsCanRestoreLastSearch(new URLSearchParams("q=1559")), "active q param should not be eligible for last-search restore");
+assert(!state.searchParamsCanRestoreLastSearch(new URLSearchParams("proposalCategory=Core")), "active filter param should not be eligible for last-search restore");
+
+console.log("Search storage and URL-state validation checks passed");
+NODE
 
 disabled_project=$tmp_root/disabled-project
 disabled_output=$tmp_root/disabled-output
@@ -512,8 +701,11 @@ assert_contains "$search_html" 'value="number-asc"' "enabled search page must ex
 assert_contains "$search_html" 'value="created-desc"' "enabled search page must expose created descending sort"
 assert_contains "$search_html" 'data-search-share' "enabled search page must render share action"
 assert_not_contains "$search_html" 'data-search-share hidden' "enabled search page must keep share action visible by default"
-assert_contains "$search_html" 'data-bs-trigger="hover"' "share tooltip must be hover-triggered"
-assert_contains "$search_html" 'search-share.svg' "share action must render the share icon asset"
+assert_contains "$search_html" 'class="search-share-button"' "enabled search page must render the icon share button"
+assert_contains "$search_html" 'data-share-state="idle"' "enabled search page must initialize share button state"
+assert_contains "$search_html" 'data-bs-title="Share search link"' "enabled search page must expose the share tooltip"
+assert_contains "$search_html" 'data-bs-trigger="hover"' "share tooltip must not stay open from button focus after click"
+assert_contains "$search_html" 'search-share.svg#search-share' "enabled search page must reference the share SVG symbol"
 assert_contains "$search_html" 'assets/css/search.css' "enabled pages must link the compiled search stylesheet"
 assert_contains "$search_html" '"enabled":true' "enabled search config must render enabled=true"
 assert_contains "$search_html" '"base_path":"/EIPs/"' "enabled search config must preserve subpath base_path"
