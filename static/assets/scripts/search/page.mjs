@@ -1,13 +1,36 @@
 import { RESULT_LIMIT } from "./constants.mjs";
-import { parseUrlSearchState, searchConfig, searchPath, validatedSort } from "./config.mjs";
+import { searchConfig, validatedSort } from "./config.mjs";
+import { createFilterControls } from "./filters.mjs";
 import { clearElement, setStatus } from "./dom.mjs";
-import { searchPagefind } from "./loader.mjs";
+import { loadPagefindFilters, searchPagefind } from "./loader.mjs";
 import { renderResultList } from "./render.mjs";
+import {
+    cloneSearchState,
+    hasActiveSearchState,
+    normalizeSearchState,
+    parseUrlSearchState,
+    pushSearchStateIfNeeded,
+    queryForPagefind,
+    replaceUrlIfNeeded,
+    searchOptionsForState,
+    searchStatePath,
+} from "./state.mjs";
 
 const SHARE_SUCCESS_RESET_MS = 2000;
 const SHARE_FAILURE_RESET_MS = 2500;
 
 let fullSearchRequestId = 0;
+
+const searchSignature = (state) =>
+    JSON.stringify({
+        query: state.query.trim(),
+        sort: state.sort,
+        filters: state.filters,
+        modes: state.modes,
+    });
+
+const noResultsMessage = (state) =>
+    state.query.trim() ? `No results for "${state.query.trim()}".` : "No results for selected filters.";
 
 export const initFullSearchPage = () => {
     const mount = document.getElementById("search-page-mount");
@@ -18,10 +41,27 @@ export const initFullSearchPage = () => {
     const form = mount.querySelector("[role='search']");
     const input = mount.querySelector("[data-search-page-query]");
     const sortControl = mount.querySelector("[data-search-page-sort]");
+    const filterMount = mount.querySelector("[data-search-page-filters]");
     const status = mount.querySelector("[data-search-page-status]");
     const results = mount.querySelector("[data-search-page-results]");
+    const searchButton = form.querySelector("[data-search-page-submit]");
     const shareButton = mount.querySelector("[data-search-share]");
-    let committedQuery = "";
+    let committedState = null;
+    let draftState = null;
+    let filterControls = null;
+    let availableFilters = {};
+    let currentResults = [];
+    let currentTotal = 0;
+    let currentSignature = null;
+    let filtersReady = false;
+    let loadingQueryEdited = false;
+    let pendingSearchSubmit = false;
+
+    const normalizeState = (state) => normalizeSearchState(state, availableFilters).state;
+
+    const isOutsideFilterCommitExempt = (target) =>
+        target instanceof Element &&
+        Boolean(target.closest("[data-search-page-sort]"));
 
     const setShareState = (state) => {
         shareButton.dataset.shareState = state;
@@ -41,26 +81,88 @@ export const initFullSearchPage = () => {
     const disableControls = () => {
         input.disabled = true;
         sortControl.disabled = true;
-        form.querySelector("[data-search-page-submit]").disabled = true;
+        searchButton.disabled = true;
         shareButton.hidden = true;
     };
 
-    const renderFreshState = () => {
+    const clearResults = () => {
+        currentResults = [];
+        currentTotal = 0;
+        currentSignature = null;
         clearElement(results);
-        setStatus(status, "Enter a query to search proposals.");
+    };
+
+    const syncCommittedControls = () => {
+        sortControl.value = committedState?.sort || "relevance";
+    };
+
+    const syncDraftControls = () => {
+        input.value = draftState?.query || "";
+        filterControls?.render(draftState);
+    };
+
+    const setDraftState = (state) => {
+        draftState = normalizeState(state);
+        syncDraftControls();
+    };
+
+    const updateDraftState = (state) => {
+        const nextState = cloneSearchState(draftState || state);
+        nextState.query = input.value;
+        nextState.filters = state.filters;
+        nextState.modes = state.modes;
+        nextState.page = 1;
+        draftState = normalizeState(nextState);
+        syncDraftControls();
+    };
+
+    const updateDraftQuery = () => {
+        if (!draftState) {
+            return;
+        }
+        draftState = cloneSearchState({
+            ...draftState,
+            query: input.value,
+        });
+    };
+
+    const renderFreshState = () => {
+        clearResults();
+        setStatus(status, "Enter a query or select filters to search proposals.");
         shareButton.hidden = false;
     };
 
     const renderDisabledState = () => {
         disableControls();
-        clearElement(results);
+        clearResults();
         setStatus(status, "Search is not available for this build.");
     };
 
-    const runCommittedSearch = async (query, sort) => {
-        const trimmedQuery = query.trim();
-        committedQuery = trimmedQuery;
-        if (!trimmedQuery) {
+    const renderCurrentResults = async (state) => {
+        if (currentTotal === 0) {
+            clearElement(results);
+            setStatus(status, noResultsMessage(state));
+            shareButton.hidden = false;
+            return;
+        }
+
+        const shown = await renderResultList(currentResults, results, RESULT_LIMIT);
+        setStatus(
+            status,
+            currentTotal > shown
+                ? `Showing ${shown} of ${currentTotal} results.`
+                : `${currentTotal} result${currentTotal === 1 ? "" : "s"}.`,
+        );
+        shareButton.hidden = false;
+    };
+
+    const executeSearch = async (state) => {
+        const normalized = normalizeState(state);
+        committedState = normalized;
+        syncCommittedControls();
+
+        if (!hasActiveSearchState(normalized)) {
+            ++fullSearchRequestId;
             renderFreshState();
             return;
         }
@@ -71,55 +173,88 @@ export const initFullSearchPage = () => {
         shareButton.hidden = false;
 
         try {
-            const response = await searchPagefind(trimmedQuery, sort);
+            const response = await searchPagefind(queryForPagefind(normalized), searchOptionsForState(normalized));
             if (requestId !== fullSearchRequestId) {
                 return;
             }
 
-            const total = response.results.length;
-            if (total === 0) {
-                setStatus(status, `No results for "${trimmedQuery}".`);
-                shareButton.hidden = false;
-                return;
-            }
-
-            const rendered = await renderResultList(response.results, results, RESULT_LIMIT);
-            if (requestId !== fullSearchRequestId) {
-                return;
-            }
-
-            setStatus(
-                status,
-                total > rendered
-                    ? `Showing ${rendered} of ${total} results.`
-                    : `${total} result${total === 1 ? "" : "s"}.`,
-            );
-            shareButton.hidden = false;
+            currentResults = response.results;
+            currentTotal = response.results.length;
+            currentSignature = searchSignature(normalized);
+            committedState = normalized;
+            syncCommittedControls();
+            await renderCurrentResults(committedState);
         } catch (error) {
             if (requestId !== fullSearchRequestId) {
                 return;
             }
             console.error("Search failed", error);
-            clearElement(results);
+            clearResults();
             setStatus(status, "Search failed to load. Please try again later.");
             shareButton.hidden = false;
         }
     };
 
-    const commitSearchState = (query, sort) => {
-        history.pushState({ buildEipsSearch: true }, "", searchPath(query, sort));
+    const applyCommittedState = async (state, { replace = false } = {}) => {
+        const normalized = normalizeState(state);
+        committedState = normalized;
+        syncCommittedControls();
+        if (replace) {
+            replaceUrlIfNeeded(normalized);
+        }
+
+        if (!hasActiveSearchState(normalized)) {
+            ++fullSearchRequestId;
+            renderFreshState();
+            return;
+        }
+
+        if (currentSignature === searchSignature(normalized) && currentSignature !== null) {
+            committedState = normalized;
+            syncCommittedControls();
+            await renderCurrentResults(committedState);
+            return;
+        }
+
+        await executeSearch(normalized);
     };
 
-    const restoreFromUrl = () => {
-        const state = parseUrlSearchState();
-        input.value = state.query;
-        sortControl.value = state.sort;
-        if (state.query.trim()) {
-            runCommittedSearch(state.query, state.sort);
-        } else {
-            committedQuery = "";
-            renderFreshState();
+    const commitDraftSearch = () => {
+        if (!draftState || !committedState) {
+            return;
         }
+        filterControls?.commitOpen();
+        const nextState = cloneSearchState(draftState || committedState);
+        nextState.query = input.value.trim();
+        nextState.sort = committedState?.sort || "relevance";
+        nextState.page = 1;
+        const normalized = normalizeState(nextState);
+        setDraftState(normalized);
+        pushSearchStateIfNeeded(normalized);
+        applyCommittedState(normalized);
+    };
+
+    const commitSort = () => {
+        if (!committedState || !hasActiveSearchState(committedState)) {
+            committedState = normalizeState({
+                ...(committedState || {}),
+                sort: "relevance",
+                page: 1,
+            });
+            syncCommittedControls();
+            return;
+        }
+
+        const nextState = cloneSearchState(committedState);
+        nextState.sort = validatedSort(sortControl.value);
+        nextState.page = 1;
+        const normalized = normalizeState(nextState);
+        if (!hasActiveSearchState(normalized)) {
+            syncCommittedControls();
+            return;
+        }
+        pushSearchStateIfNeeded(normalized);
+        applyCommittedState(normalized);
     };
 
     if (!searchConfig.enabled) {
@@ -129,21 +264,22 @@ export const initFullSearchPage = () => {
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();
-        const query = input.value.trim();
-        const sort = validatedSort(sortControl.value);
-        sortControl.value = sort;
-        commitSearchState(query, sort);
-        runCommittedSearch(query, sort);
+        if (!filtersReady) {
+            pendingSearchSubmit = true;
+            return;
+        }
+        commitDraftSearch();
     });
 
-    sortControl.addEventListener("change", () => {
-        const sort = validatedSort(sortControl.value);
-        sortControl.value = sort;
-        commitSearchState(committedQuery, sort);
-        if (committedQuery) {
-            runCommittedSearch(committedQuery, sort);
+    input.addEventListener("input", () => {
+        if (!filtersReady) {
+            loadingQueryEdited = true;
+            return;
         }
+        updateDraftQuery();
     });
+
+    sortControl.addEventListener("change", commitSort);
 
     shareButton.addEventListener("click", async () => {
         if (shareButton._shareResetTimer) {
@@ -167,6 +303,54 @@ export const initFullSearchPage = () => {
         }
     });
 
-    window.addEventListener("popstate", restoreFromUrl);
-    restoreFromUrl();
+    const restoreFromUrl = async () => {
+        filterControls?.cancelOpen();
+        const parsed = parseUrlSearchState(availableFilters);
+        committedState = parsed.state;
+        setDraftState(parsed.state);
+        if (parsed.normalized || searchStatePath(parsed.state) !== `${window.location.pathname}${window.location.search}`) {
+            replaceUrlIfNeeded(parsed.state);
+        }
+        await applyCommittedState(parsed.state);
+    };
+
+    input.value = new URLSearchParams(window.location.search).get("q") || "";
+    sortControl.disabled = true;
+    setStatus(status, "Loading search filters...");
+    loadPagefindFilters()
+        .then(async (filters) => {
+            filtersReady = true;
+            sortControl.disabled = false;
+            availableFilters = filters;
+            const parsed = parseUrlSearchState(availableFilters);
+            committedState = parsed.state;
+            filterControls = createFilterControls(filterMount, availableFilters, updateDraftState, {
+                isOutsideClickExempt: isOutsideFilterCommitExempt,
+            });
+            const hydratedDraftState = cloneSearchState(committedState);
+            if (loadingQueryEdited || pendingSearchSubmit) {
+                hydratedDraftState.query = input.value;
+            }
+            setDraftState(hydratedDraftState);
+            if (!pendingSearchSubmit && (
+                parsed.normalized ||
+                searchStatePath(committedState) !== `${window.location.pathname}${window.location.search}`
+            )) {
+                replaceUrlIfNeeded(committedState);
+            }
+            window.addEventListener("popstate", restoreFromUrl);
+            if (pendingSearchSubmit) {
+                pendingSearchSubmit = false;
+                commitDraftSearch();
+                return;
+            }
+            await applyCommittedState(committedState);
+        })
+        .catch((error) => {
+            console.error("Search failed", error);
+            disableControls();
+            shareButton.hidden = false;
+            clearResults();
+            setStatus(status, "Search failed to load. Please try again later.");
+        });
 };
