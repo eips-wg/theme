@@ -86,7 +86,15 @@ export const renderResultCard = (data, compact = false) => {
 export const renderResultList = async (results, container, limit, compact = false) => {
     clearElement(container);
     const visibleResults = results.slice(0, limit);
-    const data = await Promise.all(visibleResults.map((result) => result.data()));
+    const data = await loadResultData(visibleResults);
+    renderResultDataList(data, container, compact);
+    return data.length;
+};
+
+export const loadResultData = async (results) => Promise.all(results.map((result) => result.data()));
+
+export const renderResultDataList = (data, container, compact = false) => {
+    clearElement(container);
     for (const item of data) {
         container.appendChild(renderResultCard(item, compact));
     }
