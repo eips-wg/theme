@@ -31,9 +31,20 @@ export const loadPagefind = async () => {
     return pagefindInitPromise;
 };
 
-export const searchPagefind = async (query, sort = "relevance") => {
+export const loadPagefindFilters = async () => {
     const pagefind = await loadPagefind();
-    return pagefind.search(query, searchOptionsForSort(sort));
+    return pagefind.filters();
+};
+
+export const searchPagefind = async (query, options = {}) => {
+    const pagefind = await loadPagefind();
+    const searchOptions = {
+        ...searchOptionsForSort(options.sort || "relevance"),
+    };
+    if (options.filters && Object.keys(options.filters).length > 0) {
+        searchOptions.filters = options.filters;
+    }
+    return pagefind.search(query, searchOptions);
 };
 
 export const debouncedPagefindSearch = async (query) => {

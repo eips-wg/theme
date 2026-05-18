@@ -9,3 +9,52 @@ export const SORT_OPTIONS = {
     "created-asc": { created: "asc" },
     "created-desc": { created: "desc" },
 };
+
+export const FILTER_MODE_ANY = "any";
+export const FILTER_MODE_ALL = "all";
+export const AUTHOR_MODE_PARAM = "authorMode";
+export const PROPOSAL_CATEGORY_KEY = "proposalCategory";
+export const PROPOSAL_CATEGORY_FIELD = "proposal_category";
+export const PROPOSAL_CATEGORY_VALUES = [
+    "ERC",
+    "Core",
+    "Networking",
+    "Interface",
+    "Meta",
+    "Informational",
+];
+
+export const FILTER_FIELDS = [
+    {
+        key: PROPOSAL_CATEGORY_KEY,
+        urlParam: PROPOSAL_CATEGORY_KEY,
+        pagefindField: PROPOSAL_CATEGORY_FIELD,
+        label: "Proposal Category",
+        placeholder: "Filter proposal categories",
+        mode: FILTER_MODE_ANY,
+        multiValue: false,
+        values: PROPOSAL_CATEGORY_VALUES,
+    },
+    {
+        key: "status",
+        label: "Status",
+        placeholder: "Filter statuses",
+        mode: FILTER_MODE_ANY,
+        multiValue: false,
+    },
+    {
+        key: "author",
+        label: "Author",
+        placeholder: "Filter authors",
+        mode: FILTER_MODE_ANY,
+        multiValue: true,
+    },
+];
+
+export const FILTER_FIELD_KEYS = FILTER_FIELDS.map((field) => field.key);
+export const FILTER_FIELD_CONFIGS = Object.fromEntries(
+    FILTER_FIELDS.map((field) => [field.key, field]),
+);
+
+export const filterUrlParam = (field) => field.urlParam || field.key;
+export const filterPagefindField = (field) => field.pagefindField || field.key;
