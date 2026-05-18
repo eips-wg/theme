@@ -1,3 +1,7 @@
+{%- set_global build_eips_search = load_data(path="data/build_eips_search.toml", required=false) -%}
+{%- if not build_eips_search -%}
+{%- set_global build_eips_search = config.extra.search -%}
+{%- endif -%}
 <!doctype html>
 <html lang="{{ lang }}">
 	<head
@@ -175,6 +179,9 @@
 							</a>
 							{% endfor %}
 							{% endif %}
+							<a class="page-link col" href="{{ build_eips_search.base_path }}search/">
+								Search
+							</a>
 							<a class="page-link" id="search" href="#">
 								<div>Search...</div>
 							</a>
