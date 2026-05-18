@@ -149,6 +149,26 @@
 					<div class="search-filter-chips"></div>
 					<button class="search-filter-clear" type="button" disabled hidden>Clear author</button>
 				</section>
+				<section class="search-filter-field search-created-date-field search-filter-field-loading" data-search-filter-field="created_year">
+					<div class="search-filter-label">Created Date</div>
+					<div class="search-created-date-controls">
+						<div class="search-created-date-control">
+							<label class="search-created-date-control-label" for="search-filter-created-from-loading">Year</label>
+							<select id="search-filter-created-from-loading" class="search-created-date-select" disabled>
+								<option value="" disabled selected hidden></option>
+							</select>
+						</div>
+						<div class="search-created-date-control">
+							<label class="search-created-date-control-label" for="search-filter-created-to-loading">To</label>
+							<select id="search-filter-created-to-loading" class="search-created-date-select" disabled>
+								<option value="" disabled selected hidden></option>
+							</select>
+						</div>
+					</div>
+					<div class="search-filter-summary" aria-live="polite">Loading values...</div>
+					<div class="search-filter-chips"></div>
+					<button class="search-filter-clear" type="button" disabled hidden>Clear created date</button>
+				</section>
 			</div>
 			{% endif %}
 		</section>

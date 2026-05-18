@@ -391,11 +391,18 @@ assert_not_contains "$search_constants" 'key: "prefix"' "prefix must not remain 
 assert_not_contains "$search_constants" 'key: "type"' "type must not remain a visible filter field"
 assert_not_contains "$search_constants" 'key: "category"' "category must not remain a visible filter field"
 assert_contains "$search_constants" 'key: "author"' "filter constants must define the author field"
+assert_contains "$search_constants" 'CREATED_YEAR_FIELD = "created_year"' "filter constants must define the created year Pagefind field"
+assert_contains "$search_constants" 'CREATED_FROM_PARAM = "createdFrom"' "filter constants must define the createdFrom URL parameter"
+assert_contains "$search_constants" 'CREATED_TO_PARAM = "createdTo"' "filter constants must define the createdTo URL parameter"
 assert_contains "$search_state" "AUTHOR_MODE_PARAM" "state module must own author mode URL state"
 assert_contains "$search_state" "pagefindFilters.author = values" "state module must encode author AND filters as arrays"
 assert_contains "$search_state" "filterUrlParam(field)" "state module must use field-specific URL parameter names"
 assert_contains "$search_state" "filterPagefindField(field)" "state module must use field-specific Pagefind filter names"
 assert_contains "$search_state" "pagefindFilters[filterPagefindField(field)]" "state module must encode Proposal Category using the Pagefind field name"
+assert_contains "$search_state" "CREATED_FROM_PARAM" "state module must own createdFrom URL state"
+assert_contains "$search_state" "CREATED_TO_PARAM" "state module must own createdTo URL state"
+assert_contains "$search_state" "pagefindFilters[CREATED_YEAR_FIELD] = { any: createdYears }" "state module must encode created year filters as Pagefind OR filters"
+assert_contains "$search_state" "for (let year = from; year <= to; year += 1)" "state module must expand created year ranges inclusively"
 assert_contains "$search_state" "pushSearchStateIfNeeded" "state module must avoid duplicate clean-route history entries"
 assert_contains "$search_filters" 'role: "combobox"' "filter module must render custom combobox controls"
 assert_contains "$search_template" "search-filter-grid-loading" "search template must render loading filter shells before JS starts"
@@ -403,12 +410,19 @@ assert_contains "$search_template" "search-filter-field-loading" "search templat
 assert_contains "$search_template" "data-search-filter-field=\"proposalCategory\"" "search template must render the Proposal Category loading shell"
 assert_contains "$search_template" "data-search-filter-field=\"status\"" "search template must render the Status loading shell"
 assert_contains "$search_template" "data-search-filter-field=\"author\"" "search template must render the Author loading shell"
+assert_contains "$search_template" "data-search-filter-field=\"created_year\"" "search template must render the Created Date loading shell"
 assert_contains "$search_template" "Loading values..." "search template loading shells must not render fake counts"
 assert_contains "$search_template" "disabled" "search template loading shells must be disabled"
 assert_not_contains "$search_filters" "renderLoadingFilterControls" "filter module must not duplicate the template loading render path"
 assert_contains "$search_filters" "filterPagefindField(field)" "filter module must look up Pagefind filters by field config"
 assert_contains "$search_filters" 'Unexpected ${filterPagefindField(field)} filter values' "filter module must reject unexpected configured filter values"
+assert_contains "$search_filters" "CREATED_DATE_LABEL" "filter module must render the dedicated Created Date control"
+assert_contains "$search_filters" '"Year"' "created date filter must label the starting year control"
+assert_contains "$search_filters" '"To"' "created date filter must label the ending year control"
+assert_contains "$search_filters" "appendYearOptions(toSelect, false)" "Created Date To control must not render a visible Any option"
+assert_contains "$search_filters" "createdDate.to || createdDate.from" "Created Date To control must default to the selected Year"
 assert_contains "$search_filters" 'aria-label": `Remove ${filterLabel(field.key).toLowerCase()} ${value}`' "filter chips must have specific accessible remove labels"
+assert_contains "$search_filters" 'aria-label": `Remove created date ${selectedLabel}`' "created date chip must have a specific accessible remove label"
 assert_contains "$search_filters" 'class: "search-filter-toggle-icon"' "filter toggles must use the chevron icon hook"
 assert_contains "$search_filters" '"Choose operator"' "author filter must label the operator control"
 assert_contains "$search_filters" '"And"' "author filter must expose the AND operator label"
@@ -418,12 +432,15 @@ assert_contains "$search_filters" "isOutsideClickExempt" "filter outside-click h
 assert_not_contains "$search_filters" "Any author" "author operator labels must stay concise"
 assert_not_contains "$search_filters" "All authors" "author operator labels must stay concise"
 assert_contains "$search_css" "max-height: min(50vh, 28rem)" "filter dropdowns must be capped around 50vh"
+assert_contains "$search_css" ".search-created-date-controls" "search stylesheet must style the Created Date control"
+assert_contains "$search_css" ".search-created-date-select:disabled" "Created Date To control must have a disabled visual state"
 assert_contains "$search_css" ".search-filter-input:disabled" "loading filter inputs must share disabled styling"
 assert_contains "$search_css" ".search-filter-toggle:disabled" "loading filter toggles must share disabled styling"
 assert_contains "$search_css" ".search-page-controls select:disabled" "loading sort control must share disabled styling"
 assert_contains "$search_css" ".search-page-controls select" "sort dropdown must have explicit select styling"
 assert_contains "$search_css" ".search-filter-input" "generic filter dropdown inputs must have explicit input styling"
-assert_contains "$search_css" "background: var(--bs-body-bg, #fff)" "generic filter dropdown inputs must have body background"
+assert_contains "$search_css" "background: var(--bs-body-bg, #fff)" "generic filter dropdown inputs must match Created Date select background"
+assert_contains "$search_css" "cursor: pointer;" "Created Date selects must use a pointer cursor when enabled"
 assert_contains "$search_css" "top: 4.6rem" "filter dropdowns must keep a stable overlay position"
 assert_contains "$search_css" '.search-filter-toggle[aria-expanded="true"] .search-filter-toggle-icon::before' "filter chevrons must flip when open"
 assert_contains "$search_css" "[data-search-page-submit]" "Search button must keep the highlighted action styling"
@@ -482,6 +499,7 @@ assert_contains "$search_html" 'search-filter-grid-loading' "enabled search page
 assert_contains "$search_html" 'data-search-filter-field="proposalCategory"' "enabled search page must render Proposal Category loading shell"
 assert_contains "$search_html" 'data-search-filter-field="status"' "enabled search page must render Status loading shell"
 assert_contains "$search_html" 'data-search-filter-field="author"' "enabled search page must render Author loading shell"
+assert_contains "$search_html" 'data-search-filter-field="created_year"' "enabled search page must render Created Date loading shell"
 assert_contains "$search_html" 'Loading values...' "enabled search page loading shells must avoid fake counts"
 assert_not_contains "$search_html" "data-$pending_token" "enabled search page must not render pending-change status mount"
 assert_contains "$search_html" 'value="number-asc"' "enabled search page must expose number ascending sort"
@@ -504,6 +522,7 @@ assert_contains "$proposal_html" 'data-pagefind-filter="proposal_category:Core"'
 assert_not_contains "$proposal_html" 'data-pagefind-filter="prefix:' "proposal page must not expose prefix as a filter"
 assert_not_contains "$proposal_html" 'data-pagefind-filter="type:' "proposal page must not expose type as a filter"
 assert_not_contains "$proposal_html" 'data-pagefind-filter="category:' "proposal page must not expose category as a filter"
+assert_contains "$proposal_html" 'data-pagefind-filter="created_year:2021"' "proposal page must expose the created year filter"
 assert_not_contains "$home_html" 'data-pagefind-body' "home must remain unindexed"
 assert_not_contains "$search_html" 'data-pagefind-body' "search route must remain unindexed"
 if grep -R 'data-pagefind-filter="\(prefix\|type\|category\):' "$enabled_output" >/dev/null; then
@@ -581,6 +600,11 @@ assert(!("Other" in filters.proposal_category), "proposal_category must not expo
 assert(filters.status.Draft === 10, "status Draft count should come from Pagefind filters");
 assert(filters.status.Review === 10, "status Review count should come from Pagefind filters");
 assert(filters.status.Final === 10, "status Final count should come from Pagefind filters");
+assert(filters.created_year["2021"] === 6, "created year 2021 count should come from Pagefind filters");
+assert(filters.created_year["2022"] === 6, "created year 2022 count should come from Pagefind filters");
+assert(filters.created_year["2023"] === 6, "created year 2023 count should come from Pagefind filters");
+assert(filters.created_year["2024"] === 6, "created year 2024 count should come from Pagefind filters");
+assert(filters.created_year["2025"] === 6, "created year 2025 count should come from Pagefind filters");
 assert(filters.author.Alice === 15, "author Alice count should come from Pagefind filters");
 assert(filters.author.Bob === 15, "author Bob count should come from Pagefind filters");
 assert(filters.author.Carol === 10, "author Carol count should come from Pagefind filters");
@@ -629,6 +653,16 @@ assert(proposalCategorySorted.results.length === 5, "proposal category filter sh
 const [highestCore] = await Promise.all(proposalCategorySorted.results.slice(0, 1).map((result) => result.data()));
 assert(highestCore.meta.proposal === "EIP-25", "sorted proposal category search should preserve sort order");
 
+const createdSingle = await pagefind.search(null, {
+  filters: { created_year: { any: ["2021"] } },
+});
+assert(createdSingle.results.length === 6, "created year single filter should find matching proposals");
+
+const createdRange = await pagefind.search(null, {
+  filters: { created_year: { any: ["2021", "2022", "2023"] } },
+});
+assert(createdRange.results.length === 18, "created year range filter should expand to inclusive OR years");
+
 for (const [term, label] of [
   ["UniqueSearchMarker", "/search/"],
   ["UniqueHomeMarker", "home"],
@@ -646,6 +680,8 @@ console.log(JSON.stringify({
     authorAllAliceCarol: authorAll.results.length,
     authorAnyAliceCarol: authorAny.results.length,
     proposalCategoryCore: proposalCategorySorted.results.length,
+    createdYear2021: createdSingle.results.length,
+    createdYear2021To2023: createdRange.results.length,
   },
 }));
 NODE

@@ -27,6 +27,7 @@ const searchSignature = (state) =>
         sort: state.sort,
         filters: state.filters,
         modes: state.modes,
+        createdDate: state.createdDate,
     });
 
 const noResultsMessage = (state) =>
@@ -111,6 +112,7 @@ export const initFullSearchPage = () => {
         nextState.query = input.value;
         nextState.filters = state.filters;
         nextState.modes = state.modes;
+        nextState.createdDate = state.createdDate;
         nextState.page = 1;
         draftState = normalizeState(nextState);
         syncDraftControls();
