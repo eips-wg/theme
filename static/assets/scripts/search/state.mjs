@@ -23,6 +23,8 @@ const recognizedParams = new Set([
     ...FILTER_FIELDS.map((field) => filterUrlParam(field)),
 ]);
 
+const nonActiveHintParams = new Set(["sort", "page", AUTHOR_MODE_PARAM]);
+
 export const emptyFilterSelections = () =>
     Object.fromEntries(FILTER_FIELD_KEYS.map((field) => [field, []]));
 
@@ -227,8 +229,16 @@ export const normalizeSearchState = (state, availableFilters) => {
     };
 };
 
-export const parseUrlSearchState = (availableFilters) => {
-    const params = new URLSearchParams(window.location.search);
+export const searchParamsCanRestoreLastSearch = (params) => {
+    for (const key of params.keys()) {
+        if (!nonActiveHintParams.has(key)) {
+            return false;
+        }
+    }
+    return true;
+};
+
+export const parseSearchParamsState = (params, availableFilters) => {
     let normalized = false;
     const rawFilters = emptyFilterSelections();
     const rawCreatedFromValues = params.getAll(CREATED_FROM_PARAM);
@@ -309,6 +319,9 @@ export const parseUrlSearchState = (availableFilters) => {
         normalized: normalized || normalizedState.normalized,
     };
 };
+
+export const parseUrlSearchState = (availableFilters) =>
+    parseSearchParamsState(new URLSearchParams(window.location.search), availableFilters);
 
 export const searchStatePath = (state) => {
     const normalizedState = cloneSearchState(state);

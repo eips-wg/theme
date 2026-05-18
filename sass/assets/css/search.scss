@@ -73,6 +73,15 @@
 	opacity: 0.75;
 }
 
+.search-page-controls [data-search-page-submit] {
+	background-color: var(--bs-warning-bg-subtle, #fff3cd);
+	background-image: none;
+	border: 1px solid var(--bs-warning-border-subtle, #ffda6a);
+	border-radius: 4px;
+	box-shadow: 0 0 0 0.18rem rgba(255, 193, 7, 0.22);
+	color: var(--bs-warning-text-emphasis, #664d03);
+}
+
 .search-share-button {
 	align-items: center;
 	background: rgba(var(--bs-body-bg-rgb, 255, 255, 255), 0.92);
@@ -151,15 +160,6 @@
 .search-share-button[data-share-state="error"] {
 	border-color: currentColor;
 	color: var(--bs-danger-text-emphasis, #842029);
-}
-
-.search-page-controls [data-search-page-submit] {
-	background-color: var(--bs-warning-bg-subtle, #fff3cd);
-	background-image: none;
-	border: 1px solid var(--bs-warning-border-subtle, #ffda6a);
-	border-radius: 4px;
-	box-shadow: 0 0 0 0.18rem rgba(255, 193, 7, 0.22);
-	color: var(--bs-warning-text-emphasis, #664d03);
 }
 
 .search-page-filter-region {
@@ -690,14 +690,6 @@
 	.search-page-controls [data-search-page-submit],
 	.search-share-button {
 		flex: 0 0 auto;
-	}
-
-	.search-modal-panel {
-		max-height: 88vh;
-	}
-
-	.search-modal-results {
-		max-height: 48vh;
 	}
 
 	.search-pagination-controls {
