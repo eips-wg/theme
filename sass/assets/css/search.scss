@@ -188,6 +188,7 @@
 }
 
 .search-filter-input,
+.search-created-date-select,
 .search-filter-toggle,
 .search-filter-clear,
 .search-filter-panel-clear,
@@ -210,6 +211,36 @@
 
 .search-filter-input:disabled,
 .search-filter-toggle:disabled {
+	background: var(--bs-secondary-bg, #f8f9fa);
+	color: var(--bs-secondary-color, #666);
+	cursor: not-allowed;
+	opacity: 0.75;
+}
+
+.search-created-date-controls {
+	display: grid;
+	gap: 0.5rem;
+	grid-template-columns: 1fr 1fr;
+}
+
+.search-created-date-control {
+	display: grid;
+	gap: 0.3rem;
+}
+
+.search-created-date-control-label {
+	color: var(--bs-secondary-color, #666);
+	font-size: 0.9rem;
+}
+
+.search-created-date-select {
+	background: var(--bs-body-bg, #fff);
+	cursor: pointer;
+	min-width: 0;
+	width: 100%;
+}
+
+.search-created-date-select:disabled {
 	background: var(--bs-secondary-bg, #f8f9fa);
 	color: var(--bs-secondary-color, #666);
 	cursor: not-allowed;
