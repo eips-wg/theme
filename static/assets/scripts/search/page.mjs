@@ -5,6 +5,7 @@ import { clearElement, setStatus } from "./dom.mjs";
 import { loadPagefindFilters, searchPagefind } from "./loader.mjs";
 import { createPaginationControls } from "./pagination.mjs";
 import { loadResultData, renderResultDataList } from "./render.mjs";
+import { clearLastSearch, readLastSearchUrl, writeLastSearchUrl } from "./storage.mjs";
 import {
     cloneSearchState,
     hasActiveSearchState,
@@ -14,6 +15,7 @@ import {
     pushSearchStateIfNeeded,
     queryForPagefind,
     replaceUrlIfNeeded,
+    searchParamsCanRestoreLastSearch,
     searchOptionsForState,
     searchStatePath,
 } from "./state.mjs";
@@ -69,21 +71,6 @@ export const initFullSearchPage = () => {
     const isOutsideFilterCommitExempt = (target) =>
         target instanceof Element &&
         Boolean(target.closest("[data-search-page-sort], [data-search-page-pagination]"));
-
-    const setShareState = (state) => {
-        shareButton.dataset.shareState = state;
-    };
-
-    const resetShareStateLater = (delayMs) => {
-        if (shareButton._shareResetTimer) {
-            window.clearTimeout(shareButton._shareResetTimer);
-        }
-
-        shareButton._shareResetTimer = window.setTimeout(() => {
-            setShareState("idle");
-            shareButton._shareResetTimer = null;
-        }, delayMs);
-    };
 
     const disableControls = () => {
         input.disabled = true;
@@ -183,12 +170,15 @@ export const initFullSearchPage = () => {
         shareButton.hidden = false;
     };
 
-    const executeSearch = async (state) => {
+    const executeSearch = async (state, { storage = "write-active" } = {}) => {
         const normalized = normalizeState(state);
         committedState = normalized;
         syncCommittedControls();
 
         if (!hasActiveSearchState(normalized)) {
+            if (storage === "clear-inactive") {
+                clearLastSearch();
+            }
             ++fullSearchRequestId;
             ++pageRenderRequestId;
             renderFreshState();
@@ -219,6 +209,9 @@ export const initFullSearchPage = () => {
             }
             syncCommittedControls();
             await renderCurrentPage(committedState);
+            if (storage !== "none") {
+                writeLastSearchUrl(searchStatePath(committedState));
+            }
         } catch (error) {
             if (requestId !== fullSearchRequestId) {
                 return;
@@ -230,7 +223,7 @@ export const initFullSearchPage = () => {
         }
     };
 
-    const applyCommittedState = async (state, { replace = false } = {}) => {
+    const applyCommittedState = async (state, { replace = false, storage = "write-active" } = {}) => {
         const normalized = normalizeState(state);
         committedState = normalized;
         syncCommittedControls();
@@ -239,6 +232,9 @@ export const initFullSearchPage = () => {
         }
 
         if (!hasActiveSearchState(normalized)) {
+            if (storage === "clear-inactive") {
+                clearLastSearch();
+            }
             ++fullSearchRequestId;
             ++pageRenderRequestId;
             renderFreshState();
@@ -253,10 +249,13 @@ export const initFullSearchPage = () => {
             }
             syncCommittedControls();
             await renderCurrentPage(committedState);
+            if (storage !== "none") {
+                writeLastSearchUrl(searchStatePath(committedState));
+            }
             return;
         }
 
-        await executeSearch(normalized);
+        await executeSearch(normalized, { storage });
     };
 
     const commitDraftSearch = () => {
@@ -271,7 +270,7 @@ export const initFullSearchPage = () => {
         const normalized = normalizeState(nextState);
         setDraftState(normalized);
         pushSearchStateIfNeeded(normalized);
-        applyCommittedState(normalized);
+        applyCommittedState(normalized, { storage: "clear-inactive" });
     };
 
     const commitSort = () => {
@@ -306,6 +305,7 @@ export const initFullSearchPage = () => {
         pushSearchStateIfNeeded(nextState);
         committedState = nextState;
         syncCommittedControls();
+        writeLastSearchUrl(searchStatePath(nextState));
         renderCurrentPage(nextState);
     };
 
@@ -335,6 +335,21 @@ export const initFullSearchPage = () => {
     });
 
     sortControl.addEventListener("change", commitSort);
+
+    const setShareState = (state) => {
+        shareButton.dataset.shareState = state;
+    };
+
+    const resetShareStateLater = (delayMs) => {
+        if (shareButton._shareResetTimer) {
+            window.clearTimeout(shareButton._shareResetTimer);
+        }
+
+        shareButton._shareResetTimer = window.setTimeout(() => {
+            setShareState("idle");
+            shareButton._shareResetTimer = null;
+        }, delayMs);
+    };
 
     shareButton.addEventListener("click", async () => {
         if (shareButton._shareResetTimer) {
@@ -366,7 +381,7 @@ export const initFullSearchPage = () => {
         if (parsed.normalized || searchStatePath(parsed.state) !== `${window.location.pathname}${window.location.search}`) {
             replaceUrlIfNeeded(parsed.state);
         }
-        await applyCommittedState(parsed.state);
+        await applyCommittedState(parsed.state, { storage: "clear-inactive" });
     };
 
     input.value = new URLSearchParams(window.location.search).get("q") || "";
@@ -377,7 +392,18 @@ export const initFullSearchPage = () => {
             filtersReady = true;
             sortControl.disabled = false;
             availableFilters = filters;
-            const parsed = parseUrlSearchState(availableFilters);
+            let parsed = parseUrlSearchState(availableFilters);
+            if (
+                !pendingSearchSubmit &&
+                !hasActiveSearchState(parsed.state) &&
+                searchParamsCanRestoreLastSearch(new URLSearchParams(window.location.search))
+            ) {
+                const restoredUrl = readLastSearchUrl(availableFilters);
+                if (restoredUrl) {
+                    history.replaceState({ buildEipsSearch: true }, "", restoredUrl);
+                    parsed = parseUrlSearchState(availableFilters);
+                }
+            }
             committedState = parsed.state;
             filterControls = createFilterControls(filterMount, availableFilters, updateDraftState, {
                 isOutsideClickExempt: isOutsideFilterCommitExempt,
@@ -399,7 +425,9 @@ export const initFullSearchPage = () => {
                 commitDraftSearch();
                 return;
             }
-            await applyCommittedState(committedState);
+            await applyCommittedState(committedState, {
+                storage: hasActiveSearchState(committedState) ? "write-active" : "none",
+            });
         })
         .catch((error) => {
             console.error("Search failed", error);
