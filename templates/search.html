@@ -18,7 +18,47 @@
 		{% if search.bundle_path is defined and search.bundle_path %}
 		data-search-bundle-path="{{ search.bundle_path }}"
 		{% endif %}
-	></div>
+	>
+		<form class="search-page-form" id="search-page-form" role="search">
+			<label for="search-page-query">Search proposals by keyword or phrase</label>
+			<div class="search-page-controls">
+				<input
+					id="search-page-query"
+					name="q"
+					type="search"
+					autocomplete="off"
+					placeholder="Enter keyword or phrase"
+					data-search-page-query
+					{% if not search.enabled %}disabled{% endif %}
+				/>
+				<select
+					id="search-page-sort"
+					name="sort"
+					data-search-page-sort
+					aria-label="Sort results"
+					{% if not search.enabled %}disabled{% endif %}
+				>
+					<option value="relevance">Relevance</option>
+					<option value="number-asc">Proposal number, low to high</option>
+					<option value="number-desc">Proposal number, high to low</option>
+					<option value="created-asc">Created date, old to new</option>
+					<option value="created-desc">Created date, new to old</option>
+				</select>
+				<button type="submit" data-search-page-submit {% if not search.enabled %}disabled{% endif %}>Search</button>
+				<button type="button" class="search-share-button" data-search-share hidden data-share-state="idle" data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-title="Share search link" aria-label="Share search link">
+					<span class="search-share-button__icon" aria-hidden="true">
+						<svg viewBox="0 0 24 24">
+							<use xlink:href="{{ get_url(path='/assets/images/search-share.svg') }}#search-share"></use>
+						</svg>
+					</span>
+					<span class="search-share-button__status search-share-button__status--success" aria-hidden="true">✓</span>
+					<span class="search-share-button__status search-share-button__status--error" aria-hidden="true">✕</span>
+				</button>
+			</div>
+		</form>
+		<div class="search-page-status" role="status" aria-live="polite" data-search-page-status></div>
+		<div class="search-page-results" data-search-page-results></div>
+	</div>
 	{% if not search.enabled %}
 	<div class="alert alert-secondary" role="status" data-search-disabled-message>
 		Search is not available for this build.
