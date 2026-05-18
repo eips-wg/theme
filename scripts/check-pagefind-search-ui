@@ -294,6 +294,7 @@ search_render=$search_modules_dir/render.mjs
 search_page=$search_modules_dir/page.mjs
 search_modal=$search_modules_dir/modal.mjs
 search_filters=$search_modules_dir/filters.mjs
+search_pagination=$search_modules_dir/pagination.mjs
 search_state=$search_modules_dir/state.mjs
 search_css=$theme_root/sass/assets/css/search.scss
 search_share_svg=$theme_root/static/assets/images/search-share.svg
@@ -318,6 +319,7 @@ for source_file in \
     "$search_page" \
     "$search_modal" \
     "$search_filters" \
+    "$search_pagination" \
     "$search_state"
 do
     assert_not_contains "$source_file" "fuse.js" "Phase 6 search modules must not load Fuse"
@@ -337,6 +339,7 @@ for source_file in \
     "$search_page" \
     "$search_modal" \
     "$search_filters" \
+    "$search_pagination" \
     "$search_state"
 do
     assert_not_contains "$source_file" "pagefind.js" "Pagefind browser import must stay inside loader.mjs"
@@ -431,6 +434,7 @@ assert_contains "$search_filters" "onDraftChange" "filter controls must update d
 assert_contains "$search_filters" "isOutsideClickExempt" "filter outside-click handling must exempt committed-on-action controls"
 assert_not_contains "$search_filters" "Any author" "author operator labels must stay concise"
 assert_not_contains "$search_filters" "All authors" "author operator labels must stay concise"
+assert_contains "$search_pagination" 'aria-current": pageNumber === page ? "page" : null' "pagination must mark the active page"
 assert_contains "$search_css" "max-height: min(50vh, 28rem)" "filter dropdowns must be capped around 50vh"
 assert_contains "$search_css" ".search-created-date-controls" "search stylesheet must style the Created Date control"
 assert_contains "$search_css" ".search-created-date-select:disabled" "Created Date To control must have a disabled visual state"
@@ -456,7 +460,7 @@ assert_contains "$search_page" "loadingQueryEdited" "full search page must prese
 assert_contains "$search_page" 'new URLSearchParams(window.location.search).get("q")' "full search page may prefill q before filter hydration without parsing filters"
 assert_contains "$search_page" "commitDraftSearch" "full search page must commit query and filters through the Search action"
 assert_contains "$search_page" "filterControls?.commitOpen()" "Search action must accept any open staged dropdown before committing"
-assert_contains "$search_page" "hasActiveSearchState(committedState)" "sort actions must operate on committed active searches"
+assert_contains "$search_page" "hasActiveSearchState(committedState)" "sort and page actions must operate on committed active searches"
 assert_not_contains "$search_page" "commitFilters" "filter changes must not immediately commit URL/search state"
 
 disabled_project=$tmp_root/disabled-project
@@ -467,6 +471,7 @@ disabled_html=$disabled_output/search/index.html
 [ -f "$disabled_html" ] || die "disabled fixture did not render /search/"
 assert_contains "$disabled_html" 'id="search-page-query"' "disabled search page must render query input"
 assert_contains "$disabled_html" 'data-search-page-filters' "disabled search page must render filter mount"
+assert_contains "$disabled_html" 'data-search-page-pagination' "disabled search page must render pagination mount"
 assert_not_contains "$disabled_html" "data-$pending_token" "disabled search page must not render pending-change status mount"
 assert_contains "$disabled_html" 'Search is not available for this build.' "disabled search page must show disabled message"
 assert_contains "$disabled_html" '"enabled":false' "disabled search config must render enabled=false"
@@ -501,6 +506,7 @@ assert_contains "$search_html" 'data-search-filter-field="status"' "enabled sear
 assert_contains "$search_html" 'data-search-filter-field="author"' "enabled search page must render Author loading shell"
 assert_contains "$search_html" 'data-search-filter-field="created_year"' "enabled search page must render Created Date loading shell"
 assert_contains "$search_html" 'Loading values...' "enabled search page loading shells must avoid fake counts"
+assert_contains "$search_html" 'data-search-page-pagination' "enabled search page must render pagination mount"
 assert_not_contains "$search_html" "data-$pending_token" "enabled search page must not render pending-change status mount"
 assert_contains "$search_html" 'value="number-asc"' "enabled search page must expose number ascending sort"
 assert_contains "$search_html" 'value="created-desc"' "enabled search page must expose created descending sort"
