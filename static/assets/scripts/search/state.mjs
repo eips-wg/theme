@@ -16,6 +16,7 @@ import { searchPath, validatedSort } from "./config.mjs";
 const recognizedParams = new Set([
     "q",
     "sort",
+    "page",
     AUTHOR_MODE_PARAM,
     CREATED_FROM_PARAM,
     CREATED_TO_PARAM,
@@ -126,6 +127,17 @@ const uniqueValues = (values) => {
     return unique;
 };
 
+const parsePage = (value) => {
+    if (value === null || value === "") {
+        return { page: 1, normalized: false };
+    }
+    if (!/^[1-9][0-9]*$/.test(value)) {
+        return { page: 1, normalized: true };
+    }
+    const page = Number(value);
+    return { page: Number.isSafeInteger(page) ? page : 1, normalized: !Number.isSafeInteger(page) };
+};
+
 export const hasSelectedFilters = (state) =>
     FILTER_FIELD_KEYS.some((field) => (state.filters?.[field] || []).length > 0) ||
     Boolean(state.createdDate?.from);
@@ -186,11 +198,27 @@ export const normalizeSearchState = (state, availableFilters) => {
         normalized = true;
     }
 
+    let page = Number.isInteger(state.page) && state.page > 0 ? state.page : 1;
+    if (page !== state.page) {
+        normalized = true;
+    }
+    if (
+        page !== 1 &&
+        !hasActiveSearchState({
+            query: state.query || "",
+            filters,
+            createdDate: createdDateSelection.createdDate,
+        })
+    ) {
+        page = 1;
+        normalized = true;
+    }
+
     return {
         state: {
             query: state.query || "",
             sort,
-            page: 1,
+            page,
             filters,
             modes,
             createdDate: createdDateSelection.createdDate,
@@ -244,11 +272,28 @@ export const parseUrlSearchState = (availableFilters) => {
         normalized = true;
     }
 
+    let { page, normalized: pageNormalized } = parsePage(params.get("page"));
+    if (
+        pageNormalized ||
+        (page !== 1 &&
+            !hasActiveSearchState({
+                query: params.get("q") || "",
+                filters: rawFilters,
+                createdDate: {
+                    from: rawCreatedFromValues[0] || null,
+                    to: rawCreatedToValues[0] || null,
+                },
+            }))
+    ) {
+        page = 1;
+        normalized = true;
+    }
+
     const normalizedState = normalizeSearchState(
         {
             query: params.get("q") || "",
             sort,
-            page: 1,
+            page,
             filters: rawFilters,
             modes,
             createdDate: {
@@ -293,6 +338,10 @@ export const searchStatePath = (state) => {
     if ((normalizedState.filters.author || []).length > 0 && normalizedState.modes.author === FILTER_MODE_ALL) {
         params.set(AUTHOR_MODE_PARAM, FILTER_MODE_ALL);
     }
+    if (hasActiveSearchState(normalizedState) && normalizedState.page > 1) {
+        params.set("page", String(normalizedState.page));
+    }
+
     const queryString = params.toString();
     const path = searchPath();
     return queryString ? `${path}?${queryString}` : path;
@@ -360,6 +409,17 @@ export const searchOptionsForState = (state) => ({
 });
 
 export const queryForPagefind = (state) => (state.query.trim() ? state.query.trim() : null);
+
+export const normalizePageForResultCount = (state, totalResults, pageSize) => {
+    if (totalResults === 0) {
+        return { state: { ...state, page: 1 }, normalized: state.page !== 1, pageCount: 0 };
+    }
+    const pageCount = Math.max(1, Math.ceil(totalResults / pageSize));
+    if (state.page > pageCount) {
+        return { state: { ...state, page: 1 }, normalized: true, pageCount };
+    }
+    return { state, normalized: false, pageCount };
+};
 
 export const filterLabel = (fieldKey) => FILTER_FIELD_CONFIGS[fieldKey]?.label || fieldKey;
 
