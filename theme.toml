@@ -1,9 +1,9 @@
 name = "eips-theme"
 description = "A theme for Ethereum Improvement Proposals"
 license = "MIT"
-homepage = "https://github.com/eips-wg/eips-theme"
+homepage = "https://github.com/eips-wg/theme"
 # The minimum version of Zola required
-min_version = "0.17.2"
+min_version = "0.22.1"
 # An optional live demo URL
 demo = "https://eips-wg.github.io/eips-theme"
 

@@ -22,6 +22,16 @@
 		{{ taxonomy.name | title }}: {{ term.name | title }}
 		{% include "includes/termfeed.html" %}
 	</h1>
+	{% set configured_taxonomies = config.extra | get(key="taxonomies", default=false) %}
+	{% if configured_taxonomies %}
+	{% set taxonomy_metadata = configured_taxonomies | get(key=taxonomy.name, default=false) %}
+	{% if taxonomy_metadata %}
+	{% set term_metadata = taxonomy_metadata | get(key=term.slug, default=false) %}
+	{% if term_metadata and term_metadata.description %}
+	<p class="taxonomy-description">{{ term_metadata.description }}</p>
+	{% endif %}
+	{% endif %}
+	{% endif %}
 	{% include "includes/eiptable.html" %}
 </article>
 {% endblock content %}
