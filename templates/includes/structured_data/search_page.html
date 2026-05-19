@@ -1,0 +1,14 @@
+<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "WebPage",
+		"url": {{ current_url | json_encode | safe }},
+		"name": {{ page.title | json_encode | safe }},
+		"description": "Search Ethereum Improvement Proposals and ERCs.",
+		"isPartOf": {
+			"@type": "WebSite",
+			"name": {{ config.title | json_encode | safe }},
+			"url": {{ get_url(path='/', trailing_slash=true) | json_encode | safe }}
+		}
+	}
+</script>

@@ -4,6 +4,17 @@
 {{- taxonomy.name | title }} | {{ config.title -}}
 {% endblock title %}
 
+{% block structured_data %}
+{% set taxonomy_title = taxonomy.name | capitalize %}
+{% set structured_data_page_name = "Proposals by " ~ taxonomy_title %}
+{% set structured_data_page_description = config.title ~ " proposal " ~ taxonomy.name ~ " index." %}
+{% set structured_data_page_url = current_url %}
+{% include "includes/structured_data/collection_page.html" %}
+{% set breadcrumb_current_name = taxonomy.name | title %}
+{% set breadcrumb_current_url = current_url %}
+{% include "includes/structured_data/breadcrumbs.html" %}
+{% endblock structured_data %}
+
 {% block content %}
 <h1 class="page-heading">Proposals by {{ taxonomy.name | capitalize }}</h1>
 {% set configured_taxonomies = config.extra | get(key="taxonomies", default=false) %}
