@@ -42,6 +42,17 @@ $content-width: 1152px;
   background-color: rgba(0,0,0,0) !important;
 }
 
+header hgroup,
+header hgroup * {
+  overflow-wrap: anywhere;
+}
+
+.wrap-anywhere,
+.wrap-anywhere th,
+.wrap-anywhere td {
+  overflow-wrap: anywhere;
+}
+
 table.preamble > tbody > tr > :not(:first-child) {
   width: 100%;
 }
