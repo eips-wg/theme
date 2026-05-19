@@ -1,0 +1,23 @@
+{% set structured_data_search_path = build_eips_search.base_path ~ "search/" %}
+{% set structured_data_search_url = get_url(path=structured_data_search_path, trailing_slash=true) %}
+{% set structured_data_search_template = structured_data_search_url ~ "?q={search_term_string}" %}
+<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		"url": {{ get_url(path='/', trailing_slash=true) | json_encode | safe }},
+		"name": {{ config.title | json_encode | safe }},
+		"description": {{ config.description | json_encode | safe }}
+		{% if build_eips_search.enabled %}
+		,
+		"potentialAction": {
+			"@type": "SearchAction",
+			"target": {
+				"@type": "EntryPoint",
+				"urlTemplate": {{ structured_data_search_template | json_encode | safe }}
+			},
+			"query-input": "required name=search_term_string"
+		}
+		{% endif %}
+	}
+</script>

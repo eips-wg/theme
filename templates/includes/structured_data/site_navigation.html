@@ -1,0 +1,76 @@
+{% if config.taxonomies %}
+{% set structured_data_search_path = build_eips_search.base_path ~ "search/" %}
+{% set structured_data_search_url = get_url(path=structured_data_search_path, trailing_slash=true) %}
+<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "ItemList",
+		"name": "Site navigation",
+		"itemListElement": [
+			{% set_global structured_data_nav_position = 1 %}
+			{% set_global structured_data_nav_has_item = false %}
+			{% if config.extra.banner_taxonomies %}
+			{% for pair in config.extra.banner_taxonomies %}
+			{% set taxonomy_detail = get_taxonomy(kind=pair.name) %}
+			{% if structured_data_nav_has_item %},{% endif %}
+			{
+				"@type": "ListItem",
+				"position": {{ structured_data_nav_position }},
+				"item": {
+					"@type": "SiteNavigationElement",
+					"name": {{ pair.label | json_encode | safe }},
+					"url": {{ taxonomy_detail.permalink | json_encode | safe }}
+				}
+			}
+			{% set_global structured_data_nav_position = structured_data_nav_position + 1 %}
+			{% set_global structured_data_nav_has_item = true %}
+			{% endfor %}
+			{% else %}
+			{% for taxonomy in config.taxonomies %}
+			{% set taxonomy_detail = get_taxonomy(kind=taxonomy.name) %}
+			{% if structured_data_nav_has_item %},{% endif %}
+			{
+				"@type": "ListItem",
+				"position": {{ structured_data_nav_position }},
+				"item": {
+					"@type": "SiteNavigationElement",
+					"name": {{ taxonomy.name | title | json_encode | safe }},
+					"url": {{ taxonomy_detail.permalink | json_encode | safe }}
+				}
+			}
+			{% set_global structured_data_nav_position = structured_data_nav_position + 1 %}
+			{% set_global structured_data_nav_has_item = true %}
+			{% endfor %}
+			{% endif %}
+
+			{% if config.extra.banner_links %}
+			{% for pair in config.extra.banner_links %}
+			{% if structured_data_nav_has_item %},{% endif %}
+			{
+				"@type": "ListItem",
+				"position": {{ structured_data_nav_position }},
+				"item": {
+					"@type": "SiteNavigationElement",
+					"name": {{ pair.label | json_encode | safe }},
+					"url": {{ get_url(path=pair.href) | json_encode | safe }}
+				}
+			}
+			{% set_global structured_data_nav_position = structured_data_nav_position + 1 %}
+			{% set_global structured_data_nav_has_item = true %}
+			{% endfor %}
+			{% endif %}
+
+			{% if structured_data_nav_has_item %},{% endif %}
+			{
+				"@type": "ListItem",
+				"position": {{ structured_data_nav_position }},
+				"item": {
+					"@type": "SiteNavigationElement",
+					"name": "Search",
+					"url": {{ structured_data_search_url | json_encode | safe }}
+				}
+			}
+		]
+	}
+</script>
+{% endif %}

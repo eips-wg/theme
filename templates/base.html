@@ -25,17 +25,10 @@
 		{% block extra_head %}
 		<meta property="og:title" content="{{ config.title }}" />
 		<meta property="og:type" content="website" />
-
-		<script type="application/ld+json">
-			{
-				"@type": "WebSite",
-				"url": "{{ current_url | safe }}",
-				"name": "{{ config.title }}",
-				"description": "{{ config.description }}",
-				"@context": "https://schema.org"
-			}
-		</script>
 		{% endblock extra_head %}
+		{% include "includes/structured_data/website.html" %}
+		{% include "includes/structured_data/site_navigation.html" %}
+		{% block structured_data %}{% endblock structured_data %}
 
 		<meta name="generator" content="Zola" />
 

@@ -1,0 +1,286 @@
+#!/bin/sh
+set -eu
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+say() {
+    printf '%s\n' "$*"
+}
+
+write_fixture_project() {
+    project_dir=$1
+
+    mkdir -p "$project_dir/content/hardforks" "$project_dir/data" "$project_dir/themes"
+    ln -s "$theme_root" "$project_dir/themes/eips-theme"
+
+    cat >"$project_dir/config.toml" <<'EOF'
+base_url = "https://example.test/EIPs/"
+title = "Structured Data Fixture"
+description = "Structured data fixture"
+theme = "eips-theme"
+compile_sass = false
+build_search_index = false
+generate_feeds = false
+taxonomies = [
+    { name = "status" },
+    { name = "category" },
+    { name = "type" },
+]
+
+[extra]
+banner_taxonomies = [
+    { label = "All", name = "status" },
+]
+
+banner_links = [
+    { label = "Core", href = "/category/core/" },
+    { label = "Hardforks", href = "/hardforks/" },
+]
+
+[extra.github]
+eip_repository = "https://github.com/example/eips"
+
+[extra.section_descriptions.hardforks]
+text = "Hardforks group EIPs by network upgrade and inclusion stage."
+
+[extra.taxonomies.status.final]
+tooltip = "Final"
+
+[extra.taxonomies.category.core]
+tooltip = "Core"
+description = "Core EIPs cover low-level protocol behavior."
+
+[extra.taxonomies.type.standards-track]
+tooltip = "Standards Track"
+EOF
+
+    cat >"$project_dir/data/build_eips_search.toml" <<'EOF'
+enabled = true
+base_path = "/EIPs/"
+bundle_path = "/EIPs/pagefind/"
+EOF
+
+    cat >"$project_dir/content/_index.md" <<'EOF'
++++
+title = "Home"
++++
+
+# Home
+EOF
+
+    cat >"$project_dir/content/search.md" <<'EOF'
++++
+title = "Search"
+template = "search.html"
++++
+EOF
+
+    cat >"$project_dir/content/01559.md" <<'EOF'
++++
+title = "Fee Market Change"
+description = "A transaction pricing mechanism."
+date = 2021-04-13
+updated = 2021-08-05
+slug = "1559"
+template = "eip.html"
+authors = ["Alice"]
+
+[taxonomies]
+status = ["Final"]
+type = ["Standards Track"]
+category = ["Core"]
+
+[extra]
+number = 1559
+proposal_id = "EIP-1559"
+status = "Final"
+type = "Standards Track"
+category = "Core"
+
+[[extra.author_details]]
+name = "Alice"
+email = "alice@example.test"
++++
+
+# Abstract
+
+Fixture proposal body.
+EOF
+
+    cat >"$project_dir/content/hardforks/_index.md" <<'EOF'
++++
+title = "Hardforks"
+template = "hardforks.html"
+
+[[extra.network_upgrades]]
+slug = "pectra"
+display_name = "Pectra"
+meta_eip = 1559
+meta_url = "/1559/"
+meta_status = "Final"
+
+[[extra.network_upgrades.stages]]
+key = "included"
+label = "Included"
+
+[[extra.network_upgrades.stages.rows]]
+number = 1559
+title = "Fee Market Change"
+status = "Final"
+type = "Standards Track"
+url = "/1559/"
+category = "Core"
++++
+EOF
+}
+
+build_fixture_project() {
+    project_dir=$1
+    output_dir=$2
+
+    (cd "$project_dir" && "$zola" build --force -o "$output_dir" >/dev/null)
+}
+
+validate_json_ld() {
+    output_dir=$1
+
+    python3 - "$output_dir" <<'PY'
+import json
+import sys
+from html import unescape
+from html.parser import HTMLParser
+from pathlib import Path
+
+
+class JsonLdParser(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.in_json_ld = False
+        self.current = []
+        self.blocks = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() != "script":
+            return
+        attrs = dict(attrs)
+        if attrs.get("type") == "application/ld+json":
+            self.in_json_ld = True
+            self.current = []
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "script" and self.in_json_ld:
+            self.blocks.append("".join(self.current))
+            self.in_json_ld = False
+            self.current = []
+
+    def handle_data(self, data):
+        if self.in_json_ld:
+            self.current.append(data)
+
+    def handle_entityref(self, name):
+        if self.in_json_ld:
+            self.current.append(f"&{name};")
+
+    def handle_charref(self, name):
+        if self.in_json_ld:
+            self.current.append(f"&#{name};")
+
+
+def load_types(path):
+    parser = JsonLdParser()
+    parser.feed(path.read_text(encoding="utf-8"))
+    if not parser.blocks:
+        raise AssertionError(f"{path}: expected JSON-LD blocks")
+
+    docs = []
+    for block in parser.blocks:
+        docs.append(json.loads(unescape(block)))
+    return docs
+
+
+def types_for(docs):
+    return {doc.get("@type") for doc in docs}
+
+
+def require_type(output_dir, relpath, expected):
+    path = output_dir / relpath
+    docs = load_types(path)
+    present = types_for(docs)
+    if expected not in present:
+        raise AssertionError(f"{relpath}: expected {expected}, found {sorted(present)}")
+    return docs
+
+
+def has_search_action(docs):
+    for doc in docs:
+        if doc.get("@type") != "WebSite":
+            continue
+        action = doc.get("potentialAction")
+        if isinstance(action, dict) and action.get("@type") == "SearchAction":
+            return True
+    return False
+
+
+def has_navigation_search(docs):
+    for doc in docs:
+        if doc.get("@type") != "ItemList":
+            continue
+        for item in doc.get("itemListElement", []):
+            nav_item = item.get("item", {})
+            if nav_item.get("@type") == "SiteNavigationElement" and nav_item.get("name") == "Search":
+                return True
+    return False
+
+
+output_dir = Path(sys.argv[1])
+
+home_docs = require_type(output_dir, "index.html", "WebSite")
+require_type(output_dir, "index.html", "ItemList")
+if not has_search_action(home_docs):
+    raise AssertionError("index.html: expected WebSite SearchAction")
+if not has_navigation_search(home_docs):
+    raise AssertionError("index.html: expected Search navigation schema item")
+
+eip_docs = require_type(output_dir, "1559/index.html", "Article")
+require_type(output_dir, "1559/index.html", "BreadcrumbList")
+
+require_type(output_dir, "category/index.html", "CollectionPage")
+require_type(output_dir, "category/index.html", "BreadcrumbList")
+
+require_type(output_dir, "category/core/index.html", "CollectionPage")
+require_type(output_dir, "category/core/index.html", "BreadcrumbList")
+
+require_type(output_dir, "hardforks/index.html", "CollectionPage")
+require_type(output_dir, "hardforks/index.html", "BreadcrumbList")
+
+require_type(output_dir, "search/index.html", "WebPage")
+require_type(output_dir, "search/index.html", "BreadcrumbList")
+
+for html_file in output_dir.rglob("*.html"):
+    if html_file.name == "404.html":
+        continue
+    load_types(html_file)
+PY
+}
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+theme_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+zola=${ZOLA:-zola}
+
+command -v "$zola" >/dev/null 2>&1 || die "zola is required on PATH"
+command -v python3 >/dev/null 2>&1 || die "python3 is required on PATH"
+
+tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/eips-theme-structured-data.XXXXXX")
+trap 'rm -rf "$tmp_root"' EXIT INT HUP TERM
+
+fixture_project=$tmp_root/project
+fixture_output=$tmp_root/output
+
+write_fixture_project "$fixture_project"
+build_fixture_project "$fixture_project" "$fixture_output"
+validate_json_ld "$fixture_output"
+
+say "structured data checks passed"

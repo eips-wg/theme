@@ -4,6 +4,13 @@
 {{- page.title }} | {{ config.title -}}
 {% endblock title %}
 
+{% block structured_data %}
+{% include "includes/structured_data/search_page.html" %}
+{% set breadcrumb_current_name = page.title %}
+{% set breadcrumb_current_url = current_url %}
+{% include "includes/structured_data/breadcrumbs.html" %}
+{% endblock structured_data %}
+
 {% block content %}
 {% set search = page.extra.search | default(value=build_eips_search) %}
 <article class="home search-page">

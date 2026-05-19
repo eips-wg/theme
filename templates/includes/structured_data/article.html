@@ -1,0 +1,62 @@
+<script type="application/ld+json">
+	{
+		{#
+			schema.org has `TechArticle`, which lists "specification" as an example.
+			`TechArticle` is a sub-type of `Article`, and `Article` is supported
+			by Google, so this makes sense I think.
+		#}
+
+		"@type": "Article",
+		"url": "{{ current_url | safe }}",
+		"name": "{{ page.title }}",
+		"headline": "{{ page.title }}",
+		"description": "{{ page.description }}",
+	{% if page.date %}
+		"dateCreated": "{{ page.date }}",
+	{% endif %}
+	{% if page.extra.number %}
+		"position": {{ page.extra.number }},
+	{% endif %}
+	{% if page.updated %}
+		"dateModified": "{{ page.updated }}",
+	{% endif %}
+	{% if page.extra.status %}
+		{% if page.extra.status == "Withdrawn" %}
+		"creativeWorkStatus": "Obsolete",
+		{% elif page.extra.status == "Final" %}
+		"creativeWorkStatus": "Published",
+		{% else %}
+		"creativeWorkStatus": "Draft",
+		{% endif %}
+	{% endif %}
+	{% if page.extra.author_details %}
+		"author": [
+	{% for author in page.extra.author_details %}
+			{
+				"@type": "Person",
+				"name": "{{ author.name }}"
+	{%- if author.github -%}
+				,
+				"url": "https://github.com/{{ author.github }}"
+	{%- endif -%}
+	{%- if author.email -%}
+				,
+				"email": "{{ author.email }}"
+	{% endif %}
+			}
+	{%- if not loop.last -%}
+			,
+	{%- endif %}
+	{% endfor %}
+		],
+	{% endif %}
+	{% if page.extra.discussions_to %}
+		"discussionUrl": "{{ page.extra.discussions_to | safe }}",
+	{% endif %}
+	    "license": "#copyright",
+	{% if page.date %}
+	    "copyrightYear": "{{ page.date | date(format="%Y") }}",
+	{% endif %}
+		"@context": "https://schema.org"
+	}
+</script>
