@@ -4,11 +4,34 @@
 {{- taxonomy.name | title }} | {{ config.title -}}
 {% endblock title %}
 
+{% block structured_data %}
+{% set taxonomy_title = taxonomy.name | capitalize %}
+{% set structured_data_page_name = "Proposals by " ~ taxonomy_title %}
+{% set structured_data_page_description = config.title ~ " proposal " ~ taxonomy.name ~ " index." %}
+{% set structured_data_page_url = current_url %}
+{% include "includes/structured_data/collection_page.html" %}
+{% set breadcrumb_current_name = taxonomy.name | title %}
+{% set breadcrumb_current_url = current_url %}
+{% include "includes/structured_data/breadcrumbs.html" %}
+{% endblock structured_data %}
+
 {% block content %}
 <h1 class="page-heading">Proposals by {{ taxonomy.name | capitalize }}</h1>
+{% set configured_taxonomies = config.extra | get(key="taxonomies", default=false) %}
+{% if configured_taxonomies %}
+{% set taxonomy_metadata = configured_taxonomies | get(key=taxonomy.name, default=false) %}
+{% else %}
+{% set taxonomy_metadata = false %}
+{% endif %}
 {% for term in terms %}
 <article>
 	<h2 id="{{ term.slug }}"><a href="{{ term.permalink }}">{{ term.name }}</a></h2>
+	{% if taxonomy_metadata %}
+	{% set term_metadata = taxonomy_metadata | get(key=term.slug, default=false) %}
+	{% if term_metadata and term_metadata.description %}
+	<p class="taxonomy-description">{{ term_metadata.description }}</p>
+	{% endif %}
+	{% endif %}
 
 	{% include "includes/eiptable.html" %}
 </article>

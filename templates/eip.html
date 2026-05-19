@@ -48,70 +48,15 @@
 {% endif %}
 
 {# TODO: <meta property="citation_reference" content="..."> #}
-
-<script type="application/ld+json">
-	{
-		{#
-			schema.org has `TechArticle`, which lists "specification" as an example.
-			`TechArticle` is a sub-type of `Article`, and `Article` is supported
-			by Google, so this makes sense I think.
-		#}
-
-		"@type": "Article",
-		"url": "{{ current_url | safe }}",
-		"name": "{{ page.title }}",
-		"headline": "{{ page.title }}",
-		"description": "{{ page.description }}",
-	{% if page.date %}
-		"dateCreated": "{{ page.date }}",
-	{% endif %}
-	{% if page.extra.number %}
-		"position": {{ page.extra.number }},
-	{% endif %}
-	{% if page.updated %}
-		"dateModified": "{{ page.updated }}",
-	{% endif %}
-	{% if page.extra.status %}
-		{% if page.extra.status == "Withdrawn" %}
-		"creativeWorkStatus": "Obsolete",
-		{% elif page.extra.status == "Final" %}
-		"creativeWorkStatus": "Published",
-		{% else %}
-		"creativeWorkStatus": "Draft",
-		{% endif %}
-	{% endif %}
-	{% if page.extra.author_details %}
-		"author": [
-	{% for author in page.extra.author_details %}
-			{
-				"@type": "Person",
-				"name": "{{ author.name }}"
-	{%- if author.github -%}
-				,
-				"url": "https://github.com/{{ author.github }}"
-	{%- endif -%}
-	{%- if author.email -%}
-				,
-				"email": "{{ author.email }}"
-	{% endif %}
-			}
-	{%- if not loop.last -%}
-			,
-	{%- endif %}
-	{% endfor %}
-		],
-	{% endif %}
-	{% if page.extra.discussions_to %}
-		"discussionUrl": "{{ page.extra.discussions_to | safe }}",
-	{% endif %}
-	    "license": "#copyright",
-	{% if page.date %}
-	    "copyrightYear": "{{ page.date | date(format="%Y") }}",
-	{% endif %}
-		"@context": "https://schema.org"
-	}
-</script>
 {% endblock extra_head %}
+
+{% block structured_data %}
+{% include "includes/structured_data/article.html" %}
+{% set breadcrumb_current_name = macros::eip_number(page=page) %}
+{% set breadcrumb_current_url = current_url %}
+{% include "includes/structured_data/breadcrumbs.html" %}
+{% endblock structured_data %}
+
 {% block content %}
 
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
@@ -135,10 +80,72 @@
 	</svg>
 </svg>
 
-<article class="home">
+{% set pagefind_proposal_id = page.extra.proposal_id %}
+{% set_global pagefind_author_displays = [] %}
+{% if page.extra.author_details %}
+{% for author in page.extra.author_details %}
+{% if author.display is defined and author.display %}
+{% set_global pagefind_author_displays = pagefind_author_displays | concat(with=author.display) %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% set_global pagefind_proposal_category = "" %}
+{% if (page.extra.prefix is defined and page.extra.prefix == "ERC") or (page.extra.category and page.extra.category == "ERC") %}
+{% set_global pagefind_proposal_category = "ERC" %}
+{% elif page.extra.category and page.extra.category == "Core" %}
+{% set_global pagefind_proposal_category = "Core" %}
+{% elif page.extra.category and page.extra.category == "Networking" %}
+{% set_global pagefind_proposal_category = "Networking" %}
+{% elif page.extra.category and page.extra.category == "Interface" %}
+{% set_global pagefind_proposal_category = "Interface" %}
+{% elif page.extra.type and page.extra.type == "Meta" %}
+{% set_global pagefind_proposal_category = "Meta" %}
+{% elif page.extra.type and page.extra.type == "Informational" %}
+{% set_global pagefind_proposal_category = "Informational" %}
+{% endif %}
+
+<article class="home" data-pagefind-body>
+	<div class="visually-hidden" data-pagefind-ignore>
+		{% if pagefind_proposal_category %}
+		<span data-pagefind-filter="proposal_category:{{ pagefind_proposal_category }}"></span>
+		{% endif %}
+		{% if page.extra.status %}
+		<span data-pagefind-filter="status:{{ page.extra.status }}"></span>
+		<span data-pagefind-meta="status:{{ page.extra.status }}"></span>
+		{% endif %}
+		{% if page.extra.type %}
+		<span data-pagefind-meta="type:{{ page.extra.type }}"></span>
+		{% endif %}
+		{% if page.extra.category %}
+		<span data-pagefind-meta="category:{{ page.extra.category }}"></span>
+		{% endif %}
+		{% if page.extra.author_details %}
+		{% for author in page.extra.author_details %}
+		{% if author.name %}
+		<span data-pagefind-filter="author[data-pagefind-value]" data-pagefind-value="{{ author.name }}"></span>
+		{% endif %}
+		{% endfor %}
+		{% endif %}
+		<span data-pagefind-meta="proposal:{{ pagefind_proposal_id }}"></span>
+		<span data-pagefind-meta="title[data-pagefind-value]" data-pagefind-value="{{ pagefind_proposal_id }}: {{ page.title }}"></span>
+		{% if page.description %}
+		<span data-pagefind-meta="description[data-pagefind-value]" data-pagefind-value="{{ page.description }}"></span>
+		{% endif %}
+		{% if pagefind_author_displays | length > 0 %}
+		<span data-pagefind-meta="authors[data-pagefind-value]" data-pagefind-value="{{ pagefind_author_displays | join(sep=', ') }}"></span>
+		{% endif %}
+		{% if page.date %}
+		<span data-pagefind-filter="created_year:{{ page.date | date(format="%Y") }}"></span>
+		<span data-pagefind-meta="created:{{ page.date | date(format="%Y-%m-%d") }}"></span>
+		<span data-pagefind-sort="created:{{ page.date | date(format="%Y-%m-%d") }}"></span>
+		{% endif %}
+		{% if page.extra.number %}
+		<span data-pagefind-sort="number:{{ page.extra.number }}"></span>
+		{% endif %}
+	</div>
 	<header>
 		<hgroup>
-			<p class="h5">
+			<p class="h5" data-pagefind-ignore>
 				{# Sort the taxonomies so they appear in a consistent order. #}
 				{% set_global taxonomies = [] %}
 				{% for taxonomy, terms in page.taxonomies %}
@@ -163,7 +170,7 @@
 			<h1 class="page-heading">
 				{{ macros::eip_number(page=page) }}: {{ page.title }}
 				{% if page.extra.discussions_to %}
-				<a rel="noopener" href="{{ page.extra.discussions_to }}" class="no-underline">
+				<a rel="noopener" href="{{ page.extra.discussions_to }}" class="no-underline" data-pagefind-ignore>
 					<svg
 						role="img"
 						aria-label="Discuss"
@@ -185,6 +192,7 @@
 				<a
 					href="{{ repo_url }}/blob/master/content/{{ page.relative_path }}"
 					class="no-underline"
+					data-pagefind-ignore
 				>
 					<svg
 						role="img"
@@ -198,9 +206,9 @@
 				</a>
 				{% endif %}
 			</h1>
-			<p role="doc-subtitle">{{ page.description }}</p>
+			<p role="doc-subtitle" data-pagefind-ignore>{{ page.description }}</p>
 		</hgroup>
-		<table class="table table-borderless preamble">
+		<table class="table table-borderless preamble" data-pagefind-ignore>
 			<tbody>
 				<tr>
 					<th scope="row">Authors</th>
@@ -230,13 +238,40 @@
 					<th scope="row">Requires</th>
 					<td>
 						{% for required in page.extra.requires -%}
+						{% if required is starting_with("http") %}
+						{% set required_segment = required | split(pat="/") | last %}
+						{% set required_label = required_segment | replace(from="eip-", to="EIP-") | replace(from="erc-", to="ERC-") %}
+						<a href="{{ required | safe }}">{{ required_label }}</a>
+						{% else %}
 						{% set path = required | trim_start_matches(pat="@/") %}
 						{% set page = get_page(path=path) %}
 						<a href="{{ get_url(path=required) }}" title="{{ page.title }}">
 						{{ macros::eip_number(page=page) }}
 						</a>
+						{% endif %}
 						{%- if not loop.last %}, {% endif -%}
 						{%- endfor %}
+					</td>
+				</tr>
+				{% endif %} {% if page.extra.network_upgrades %}
+				<tr class="network-upgrade-preamble-row">
+					<th scope="row">Network Upgrade</th>
+					<td>
+						{% if page.extra.network_upgrades | length == 1 %}
+						{% for upgrade in page.extra.network_upgrades %}
+						<span class="network-upgrade-membership">
+							{% include "includes/network_upgrade_membership.html" %}
+						</span>
+						{% endfor %}
+						{% else %}
+						<ul class="network-upgrade-membership-list">
+							{% for upgrade in page.extra.network_upgrades %}
+							<li>
+								{% include "includes/network_upgrade_membership.html" %}
+							</li>
+							{% endfor %}
+						</ul>
+						{% endif %}
 					</td>
 				</tr>
 				{% endif %}
@@ -251,7 +286,7 @@
 		<br />
 
 		{% if page.extra.status == "Review" or page.extra.status == "Last Call" %}
-		<div class="alert alert-primary d-flex align-items-center" role="alert">
+		<div class="alert alert-primary d-flex align-items-center" role="alert" data-pagefind-ignore>
 			<svg
 				class="bi flex-shrink-0 me-2"
 				role="img"
@@ -271,7 +306,7 @@
 		{% endif %}
 	</header>
 
-	<nav class="toc">
+	<nav class="toc" data-pagefind-ignore>
 		<h2>Table of Contents</h2>
 		{% if page.toc %}
 		<ul>
@@ -294,18 +329,20 @@
 	</nav>
 
 	{{ page.content | safe }}
-	<h2>Citation</h2>
-	<p>Please cite this document as:</p>
-	{# IEEE specification for reference formatting:
-	https://ieee-dataport.org/sites/default/files/analysis/27/IEEE%20Citation%20Guidelines.pdf
-	#}
-	<div>
-		{%- for author in page.authors -%} {{- author -}} {% if not loop.last
-		-%}, {% endif -%} {%- endfor -%}, "{{ page.title }},"
-		<em>Ethereum Improvement Proposals</em>, no. {{ page.extra.number }}{%
-		if page.draft %}, early access{% endif %}{% if page.date %}, {{
-		page.date | date(format="%B %Y") }}{% endif %}.
-		Available: {{ current_url }}.
-	</div>
+	<section data-pagefind-ignore>
+		<h2>Citation</h2>
+		<p>Please cite this document as:</p>
+		{# IEEE specification for reference formatting:
+		https://ieee-dataport.org/sites/default/files/analysis/27/IEEE%20Citation%20Guidelines.pdf
+		#}
+		<div>
+			{%- for author in page.authors -%} {{- author -}} {% if not loop.last
+			-%}, {% endif -%} {%- endfor -%}, "{{ page.title }},"
+			<em>Ethereum Improvement Proposals</em>, no. {{ page.extra.number }}{%
+			if page.draft %}, early access{% endif %}{% if page.date %}, {{
+			page.date | date(format="%B %Y") }}{% endif %}.
+			Available: {{ current_url }}.
+		</div>
+	</section>
 </article>
 {% endblock content %}

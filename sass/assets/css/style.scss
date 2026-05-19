@@ -33,6 +33,34 @@ $content-width: 1152px;
   vertical-align: baseline;
 }
 
+.homepage-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -0.25rem 0 1.25rem;
+}
+
+.homepage-badge-link {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.homepage-badge-link:hover {
+  text-decoration: none;
+}
+
+.homepage-badge-link img {
+  display: block;
+  max-width: 100%;
+  height: 20px;
+}
+
+.homepage-badge-link .badge {
+  font-size: 0.875rem;
+}
+
 .footer-col-wrapper {
   color: #111;
 }
@@ -48,6 +76,74 @@ table.preamble > tbody > tr > :not(:first-child) {
 
 table.preamble > tbody > tr > :first-child {
   white-space: nowrap;
+}
+
+.network-upgrade-membership,
+.network-upgrade-membership-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.network-upgrade-membership-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.network-upgrade-membership-list li + li {
+  margin-top: 0.25rem;
+}
+
+.network-upgrade-subgroup,
+.hardfork-status,
+.hardfork-row-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  background-color: rgba(var(--bs-secondary-rgb), 0.12);
+  color: var(--bs-secondary-color);
+  font-size: 0.875em;
+  line-height: 1.4;
+}
+
+.network-upgrade-stage {
+  cursor: help;
+}
+
+.network-upgrade-stage--included {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-success-rgb),var(--bs-bg-opacity)) !important;
+}
+
+.network-upgrade-stage--scheduled,
+.network-upgrade-stage--scheduled-for-inclusion {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-primary-rgb),var(--bs-bg-opacity)) !important;
+}
+
+.badge.text-light.network-upgrade-stage--considered,
+.badge.text-light.network-upgrade-stage--considered-for-inclusion {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-warning-rgb),var(--bs-bg-opacity)) !important;
+  color: #000 !important;
+}
+
+.network-upgrade-stage--proposed,
+.network-upgrade-stage--proposed-for-inclusion {
+  background-color: #6f42c1 !important;
+}
+
+.network-upgrade-stage--declined,
+.network-upgrade-stage--declined-for-inclusion {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--bs-danger-rgb),var(--bs-bg-opacity)) !important;
+}
+
+.network-upgrade-subgroup,
+.hardfork-row-tag {
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 address.author {
@@ -116,6 +212,88 @@ pre,code {
 
 .eiptable .author {
   min-width: 33%;
+}
+
+.network-upgrades-header {
+  margin-bottom: 1.5rem;
+}
+
+.network-upgrades-summary,
+.network-upgrades-intro {
+  max-width: 48rem;
+}
+
+.network-upgrade-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.hardfork-section {
+  border-top: 1px solid var(--bs-border-color);
+  padding-top: 1.25rem;
+}
+
+.hardfork-header h2,
+.hardfork-stage h3 {
+  display: flex;
+  align-items: center;
+}
+
+.hardfork-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.hardfork-stage {
+  margin-top: 1rem;
+}
+
+.hardfork-stage h3 {
+  font-size: 1.15rem;
+}
+
+.hardfork-table-wrap {
+  overflow-x: auto;
+}
+
+.hardfork-table {
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
+}
+
+.hardfork-table th,
+.hardfork-table td {
+  border-top: 1px solid var(--bs-border-color);
+  padding: 0.55rem 0.65rem;
+  vertical-align: top;
+}
+
+.hardfork-table thead th {
+  border-top: 0;
+  color: var(--bs-secondary-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.hardfork-row-number {
+  white-space: nowrap;
+}
+
+.hardfork-row-title {
+  min-width: 16rem;
+}
+
+.hardfork-row-tag {
+  margin-left: 0.35rem;
+}
+
+.hardfork-empty {
+  color: var(--bs-secondary-color);
+  font-style: italic;
 }
 
 .site-header .row {

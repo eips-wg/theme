@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}{{ section.title }} | {{ config.title }}{% endblock title %}
+
+{% block extra_head %}
+<meta property="og:title" content="{{ section.title }}" />
+<meta property="og:type" content="website" />
+<meta property="og:description" content="{{ config.description }}" />
+{% endblock extra_head %}
+
+{% block structured_data %}
+{% set hardfork_description = false %}
+{% set section_descriptions = config.extra | get(key="section_descriptions", default=false) %}
+{% if section_descriptions %}
+{% set hardfork_description = section_descriptions | get(key="hardforks", default=false) %}
+{% endif %}
+{% set structured_data_page_name = section.title %}
+{% if hardfork_description and hardfork_description.text %}
+{% set structured_data_page_description = hardfork_description.text %}
+{% else %}
+{% set structured_data_page_description = config.description %}
+{% endif %}
+{% set structured_data_page_url = current_url %}
+{% include "includes/structured_data/collection_page.html" %}
+{% set breadcrumb_current_name = section.title %}
+{% set breadcrumb_current_url = current_url %}
+{% include "includes/structured_data/breadcrumbs.html" %}
+{% endblock structured_data %}
+
+{% block content %}
+<article class="network-upgrades-page">
+	<header class="network-upgrades-header">
+		<h1 class="page-heading">{{ section.title }}</h1>
+		{% set section_descriptions = config.extra | get(key="section_descriptions", default=false) %}
+		{% if section_descriptions %}
+		{% set hardfork_description = section_descriptions | get(key="hardforks", default=false) %}
+		{% if hardfork_description and hardfork_description.text %}
+		<p class="network-upgrades-summary">
+			{{ hardfork_description.text }}
+		</p>
+		{% endif %}
+		{% endif %}
+		{% if section.content %}
+		<div class="network-upgrades-intro">
+			{{ section.content | safe }}
+		</div>
+		{% endif %}
+	</header>
+
+	{% if section.extra.network_upgrades %}
+	<div class="network-upgrade-list">
+		{% for upgrade in section.extra.network_upgrades %}
+		{% set_global hardfork_has_rows = false %}
+		<section class="hardfork-section" id="{{ upgrade.slug }}">
+			<header class="hardfork-header">
+				<h2>
+					<a class="anchor-link" href="#{{ upgrade.slug }}" aria-label="Permalink to {{ upgrade.display_name }}"></a>
+					{{ upgrade.display_name }}
+				</h2>
+				<p class="hardfork-meta">
+					<a href="{{ upgrade.meta_url | safe }}">EIP-{{ upgrade.meta_eip }}</a>
+					<span class="hardfork-status">{{ upgrade.meta_status }}</span>
+				</p>
+			</header>
+
+			{% for stage in upgrade.stages %}
+			{% if stage.rows %}
+			{% set_global hardfork_has_rows = true %}
+			<section class="hardfork-stage hardfork-stage-{{ stage.key }}" id="{{ upgrade.slug }}-{{ stage.key }}">
+				<h3>
+					<a class="anchor-link" href="#{{ upgrade.slug }}-{{ stage.key }}" aria-label="Permalink to {{ upgrade.display_name }} {{ stage.label }}"></a>
+					{{ stage.label }}
+				</h3>
+				<div class="hardfork-table-wrap">
+					<table class="hardfork-table">
+						<thead>
+							<tr>
+								<th scope="col">Proposal</th>
+								<th scope="col">Title</th>
+								<th scope="col">Status</th>
+								<th scope="col">Type</th>
+								<th scope="col">Category</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for row in stage.rows %}
+							<tr>
+								<th scope="row" class="hardfork-row-number">
+									<a href="{{ row.url | safe }}">{% if row.category and row.category == "ERC" %}ERC{% else %}EIP{% endif %}-{{ row.number }}</a>
+								</th>
+								<td class="hardfork-row-title">
+									<a href="{{ row.url | safe }}">{{ row.title }}</a>
+									{% if row.subgroup %}
+									<span class="hardfork-row-tag">{{ row.subgroup }}</span>
+									{% endif %}
+								</td>
+								<td>{{ row.status }}</td>
+								<td>{{ row.type }}</td>
+								<td>
+									{% if row.category %}
+									{{ row.category }}
+									{% endif %}
+								</td>
+							</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</section>
+			{% endif %}
+			{% endfor %}
+
+			{% if not hardfork_has_rows %}
+			<p class="hardfork-empty">No EIPs are listed for this hardfork.</p>
+			{% endif %}
+		</section>
+		{% endfor %}
+	</div>
+	{% else %}
+	<p class="hardfork-empty">No hardforks are listed yet.</p>
+	{% endif %}
+</article>
+{% endblock content %}
