@@ -53,6 +53,14 @@ header hgroup * {
   overflow-wrap: anywhere;
 }
 
+@include media-query($on-laptop) {
+  table {
+    display: inline-block;
+    max-width: 100%;
+    width: auto !important;
+  }
+}
+
 table.preamble > tbody > tr > :not(:first-child) {
   width: 100%;
 }
@@ -116,6 +124,7 @@ pre,code {
 }
 
 .eiptable .title {
+  min-width: 300px;
   width: 67%;
 }
 
@@ -126,6 +135,7 @@ pre,code {
 }
 
 .eiptable .author {
+  max-width: 300px;
   min-width: 33%;
 }
 
