@@ -33,6 +33,34 @@ $content-width: 1152px;
   vertical-align: baseline;
 }
 
+.homepage-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -0.25rem 0 1.25rem;
+}
+
+.homepage-badge-link {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.homepage-badge-link:hover {
+  text-decoration: none;
+}
+
+.homepage-badge-link img {
+  display: block;
+  max-width: 100%;
+  height: 20px;
+}
+
+.homepage-badge-link .badge {
+  font-size: 0.875rem;
+}
+
 .footer-col-wrapper {
   color: #111;
 }

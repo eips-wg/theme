@@ -1,13 +1,15 @@
 +++
+[extra]
+homepage_badges = [
+  { href = "https://discord.gg/Nz6rtfJ8Cu", image = "https://dcbadge.limes.pink/api/server/Nz6rtfJ8Cu?style=flat", alt = "Badge for EIP Editor Discord channel" },
+  { href = "https://discord.gg/EVTQ9crVgQ", image = "https://dcbadge.limes.pink/api/server/EVTQ9crVgQ?style=flat", alt = "Badge for Ethereum R&D Discord channel" },
+  { href = "https://discord.gg/mRzPXmmYEA", image = "https://dcbadge.limes.pink/api/server/mRzPXmmYEA?style=flat", alt = "Badge for Ethereum Wallets Discord channel" },
+  { href = "/atom.xml", image = "https://img.shields.io/badge/rss-Everything-red.svg", alt = "RSS feed for everything" },
+  { href = "/status/last-call/atom.xml", image = "https://img.shields.io/badge/rss-Last%20Calls-red.svg", alt = "RSS feed for last calls" },
+]
 +++
 
-<h1 class="page-heading">EIPs
-  <a href="https://discord.io/EthCatHerders"><img src="https://dcbadge.vercel.app/api/server/Nz6rtfJ8Cu?style=flat" alt="Discord channel for ECH eip-editer"></a>
-  <a href="https://discord.gg/EVTQ9crVgQ"><img src="https://dcbadge.vercel.app/api/server/EVTQ9crVgQ?style=flat" alt="Discord channel for Eth R&D eip-editing"></a>
-  <a href="https://discord.gg/mRzPXmmYEA"><img src="https://dcbadge.vercel.app/api/server/mRzPXmmYEA?style=flat" alt="Discord server for discussions about proposals that impact Ethereum wallets"></a>
-  <a href="/atom.xml"><img src="https://img.shields.io/badge/rss-Everything-red.svg" alt="RSS"></a>
-  <a href="/status/last-call/atom.xml"><img src="https://img.shields.io/badge/rss-Last Calls-red.svg" alt="RSS"></a>
-</h1>
+# EIPs
 
 <p>Ethereum Improvement Proposals (EIPs) describe standards for the Ethereum platform, including core protocol specifications, client APIs, and contract standards. Network upgrades are discussed separately in the <a target="_blank" href="https://github.com/ethereum/pm/">Ethereum Project Management</a> repository.</p>
 

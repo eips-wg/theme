@@ -1,5 +1,17 @@
 {% extends "base.html" %}
+{% import "macros.html" as macros %}
 
 {% block content %}
+{% if section.extra.homepage_badges %}
+{% set badge_markup = macros::homepage_badges(badges=section.extra.homepage_badges) %}
+{% set content_with_badges = section.content | replace(from="</h1>", to="</h1>" ~ badge_markup) %}
+{% if content_with_badges == section.content %}
+{{ badge_markup | safe }}
 {{ section.content | safe }}
+{% else %}
+{{ content_with_badges | safe }}
+{% endif %}
+{% else %}
+{{ section.content | safe }}
+{% endif %}
 {% endblock content %}
