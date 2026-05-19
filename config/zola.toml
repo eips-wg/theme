@@ -62,7 +62,11 @@ banner_links = [
     { label = "ERC", href = "/category/erc/" },
     { label = "Meta", href = "/type/meta/" },
     { label = "Informational", href = "/type/informational/" },
+    { label = "Hardforks", href = "/hardforks/" },
 ]
+
+[extra.section_descriptions.hardforks]
+text = "Hardforks group EIPs by network upgrade and inclusion stage, based on their hardfork Meta EIPs."
 
 [extra.github]
 eip_repository = "https://github.com/ethereum/EIPs"
@@ -88,21 +92,27 @@ tooltip = "This EIP is completed and no longer expected to change."
 
 [extra.taxonomies.category.erc]
 tooltip = "Application-level standards and conventions, including contract standards such as token standards, name registries, URI schemes, library/package formats, and wallet formats."
+description = "ERCs define application-level standards and conventions for the Ethereum ecosystem. They include token standards, registries, URI schemes, wallet formats, and other interfaces used by applications and contracts."
 
 [extra.taxonomies.category.interface]
 tooltip = "Improvements around client API/RPC specifications and standards, and also certain language-level standards like method names and contract ABIs."
+description = "Interface EIPs cover client APIs, RPC standards, contract ABIs, and other language-level interfaces. They help applications, tools, wallets, and clients interact consistently."
 
 [extra.taxonomies.category.networking]
 tooltip = "Improvements around devp2p and Light Ethereum Subprotocol, as well as proposed improvements to network protocol specifications of whisper and swarm."
+description = "Networking EIPs cover Ethereum peer-to-peer networking, light client protocols, and related network protocol specifications. They describe how Ethereum nodes and clients communicate."
 
 [extra.taxonomies.category.core]
 tooltip = "Improvements requiring a consensus fork, as well as changes that are not necessarily consensus critical but may be relevant to “core dev” discussions."
+description = "Core EIPs cover changes to Ethereum consensus, execution, and other low-level protocol behavior usually debated by core developers. They include hard-fork changes as well as non-consensus protocol work relevant to core dev discussions."
 
 [extra.taxonomies.type.informational]
 tooltip = "Describes an Ethereum design issue, or provides general guidelines or information to the Ethereum community, but does not propose a new feature. Informational EIPs do not necessarily represent Ethereum community consensus or a recommendation, so users and implementers are free to ignore Informational EIPs or follow their advice."
+description = "Informational EIPs provide design notes, background, or general guidance for the Ethereum community. They do not propose a new feature, but they can document useful context, suggestions, or analysis."
 
 [extra.taxonomies.type.meta]
 tooltip = "Describes a process surrounding Ethereum or proposes a change to (or an event in) a process."
+description = "Meta EIPs describe Ethereum processes or propose changes to those processes. They include coordination, tooling, and changes to the EIP workflow itself."
 
 [extra.taxonomies.type.standards-track]
 tooltip = "Describes any change that affects most or all Ethereum implementations or any application."
