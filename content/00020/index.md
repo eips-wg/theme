@@ -13,6 +13,7 @@ status = ["Final"]
 category = ["ERC"]
 
 [extra]
+proposal_id = "ERC-20"
 status = "Final"
 type = "Standards Track"
 number = 20
