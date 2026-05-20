@@ -1,0 +1,334 @@
+#!/bin/sh
+set -eu
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+say() {
+    printf '%s\n' "$*"
+}
+
+assert_contains() {
+    file=$1
+    expected=$2
+    message=$3
+
+    if ! grep -Fq "$expected" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_not_contains() {
+    file=$1
+    unexpected=$2
+    message=$3
+
+    if grep -Fq "$unexpected" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_matches() {
+    file=$1
+    expected_pattern=$2
+    message=$3
+
+    if ! grep -Eq "$expected_pattern" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_pagefind_artifact() {
+    path_pattern=$1
+    message=$2
+
+    if ! find "$pagefind_dir" -path "$path_pattern" -type f | grep -q .; then
+        die "$message"
+    fi
+}
+
+write_fixture_project() {
+    project_dir=$1
+    base_url=$2
+    compile_sass=${3:-false}
+
+    mkdir -p "$project_dir/content" "$project_dir/themes"
+    ln -s "$theme_root" "$project_dir/themes/eips-theme"
+
+    cat >"$project_dir/config.toml" <<EOF
+base_url = "$base_url"
+title = "Pagefind Search UI Fixture"
+description = "Pagefind search UI fixture"
+theme = "eips-theme"
+compile_sass = $compile_sass
+build_search_index = false
+generate_feeds = false
+taxonomies = [
+    { name = "status" },
+    { name = "category" },
+    { name = "type" },
+]
+
+[extra.github]
+eip_repository = "https://github.com/example/eips"
+
+[extra.taxonomies.status.final]
+tooltip = "Final"
+
+[extra.taxonomies.category.core]
+tooltip = "Core"
+
+[extra.taxonomies.type.standards-track]
+tooltip = "Standards Track"
+EOF
+
+    cat >"$project_dir/content/_index.md" <<'EOF'
++++
+title = "Home"
++++
+
+# Home
+
+UniqueHomeMarker
+EOF
+
+    cat >"$project_dir/content/search.md" <<'EOF'
++++
+title = "Search"
+template = "search.html"
++++
+
+UniqueSearchMarker
+EOF
+
+    cat >"$project_dir/content/01559.md" <<'EOF'
++++
+title = "Fee Market Change"
+description = "A transaction pricing mechanism."
+date = 2021-04-13
+slug = "1559"
+authors = ["Alice", "Bob"]
+template = "eip.html"
+
+[taxonomies]
+status = ["Final"]
+type = ["Standards Track"]
+category = ["Core"]
+
+[extra]
+proposal_id = "EIP-1559"
+prefix = "EIP"
+number = 1559
+status = "Final"
+type = "Standards Track"
+category = "Core"
+
+[[extra.author_details]]
+name = "Alice"
+email = "alice@example.com"
+display = "Alice <alice@example.com>"
+
+[[extra.author_details]]
+name = "Bob"
+github = "bob"
+display = "Bob (@bob)"
++++
+
+## Abstract
+
+PhaseFiveBodyMarker
+
+## Motivation
+
+This proposal should appear in Pagefind UI results.
+EOF
+}
+
+build_fixture_project() {
+    project_dir=$1
+    output_dir=$2
+
+    (cd "$project_dir" && "$zola" build --force -o "$output_dir" >/dev/null)
+}
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+theme_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+zola=${ZOLA:-zola}
+pagefind=${PAGEFIND:-pagefind}
+node=${NODE:-node}
+search_script=$theme_root/static/assets/scripts/search.mjs
+search_modules_dir=$theme_root/static/assets/scripts/search
+search_constants=$search_modules_dir/constants.mjs
+search_config=$search_modules_dir/config.mjs
+search_loader=$search_modules_dir/loader.mjs
+search_dom=$search_modules_dir/dom.mjs
+search_render=$search_modules_dir/render.mjs
+search_page=$search_modules_dir/page.mjs
+search_modal=$search_modules_dir/modal.mjs
+search_css=$theme_root/sass/assets/css/search.scss
+search_share_svg=$theme_root/static/assets/images/search-share.svg
+
+command -v "$zola" >/dev/null 2>&1 || die "zola is required on PATH"
+command -v "$pagefind" >/dev/null 2>&1 || die "pagefind is required on PATH"
+command -v "$node" >/dev/null 2>&1 || die "node is required on PATH"
+
+tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/eips-theme-pagefind-ui.XXXXXX")
+trap 'rm -rf "$tmp_root"' EXIT INT HUP TERM
+
+for source_file in \
+    "$search_script" \
+    "$search_constants" \
+    "$search_config" \
+    "$search_loader" \
+    "$search_dom" \
+    "$search_render" \
+    "$search_page" \
+    "$search_modal"
+do
+    assert_not_contains "$source_file" "fuse.js" "Phase 5 search modules must not load Fuse"
+    assert_not_contains "$source_file" "window.Fuse" "Phase 5 search modules must not reference Fuse"
+    assert_not_contains "$source_file" "atom.xml" "Phase 5 search modules must not depend on Atom XML search data"
+    assert_not_contains "$source_file" 'document.createElement("style")' "search modules must not inject runtime CSS"
+    assert_not_contains "$source_file" "document.head.appendChild(style)" "search modules must not append runtime CSS"
+    assert_not_contains "$source_file" "addSearchStyles" "search modules must not keep runtime CSS injection hooks"
+done
+assert_contains "$search_script" 'import { initQuickSearch } from "./search/modal.mjs";' "public search entrypoint must import quick search initializer"
+assert_contains "$search_script" 'import { initFullSearchPage } from "./search/page.mjs";' "public search entrypoint must import full search initializer"
+assert_contains "$search_loader" 'import(`${bundlePath}pagefind.js`)' "loader module must dynamically import the configured Pagefind bundle"
+assert_contains "$search_loader" "basePath: bundlePath" "loader module must pass Pagefind basePath"
+assert_contains "$search_loader" "baseUrl: searchConfig.base_path" "loader module must pass Pagefind baseUrl"
+assert_contains "$search_loader" "excerptLength: 45" "loader module must configure Pagefind excerpt length"
+assert_contains "$search_loader" "pagefind.init()" "loader module must initialize Pagefind once through the shared loader"
+assert_contains "$search_constants" '"number-asc": { number: "asc" }' "sort constants must define proposal number ascending sort"
+assert_contains "$search_constants" '"created-desc": { created: "desc" }' "sort constants must define created date descending sort"
+assert_contains "$search_modal" "Quick Search Proposals" "quick search modal must use the final heading"
+assert_contains "$search_modal" "Enter keyword or phrase" "quick search modal must use keyword/phrase placeholder copy"
+assert_contains "$search_css" '.search-share-button[data-share-state="success"]' "share button must expose success state styling"
+assert_contains "$search_css" '.search-share-button[data-share-state="error"]' "share button must expose error state styling"
+assert_contains "$search_page" "SHARE_SUCCESS_RESET_MS" "share button success state must reset after a short delay"
+assert_contains "$search_page" "shareButton.dataset.shareState" "share button state must be controlled by page script"
+assert_contains "$search_share_svg" '<symbol id="search-share"' "share icon asset must expose the search-share symbol"
+assert_contains "$search_share_svg" 'currentColor' "share icon asset must inherit button color"
+
+disabled_project=$tmp_root/disabled-project
+disabled_output=$tmp_root/disabled-output
+write_fixture_project "$disabled_project" "https://example.test/"
+build_fixture_project "$disabled_project" "$disabled_output"
+disabled_html=$disabled_output/search/index.html
+[ -f "$disabled_html" ] || die "disabled fixture did not render /search/"
+assert_contains "$disabled_html" 'id="search-page-query"' "disabled search page must render query input"
+assert_contains "$disabled_html" 'Search is not available for this build.' "disabled search page must show disabled message"
+assert_contains "$disabled_html" '"enabled":false' "disabled search config must render enabled=false"
+assert_not_contains "$disabled_html" '"bundle_path"' "disabled search config must omit bundle_path"
+assert_contains "$disabled_html" 'data-search-share hidden' "disabled search page must not show share action"
+assert_not_contains "$disabled_html" "pagefind.js" "disabled search page must not import Pagefind browser assets"
+
+enabled_project=$tmp_root/enabled-project
+enabled_output=$tmp_root/enabled-output
+write_fixture_project "$enabled_project" "https://example.test/EIPs/" true
+mkdir -p "$enabled_project/data"
+cat >"$enabled_project/data/build_eips_search.toml" <<'EOF'
+enabled = true
+base_path = "/EIPs/"
+bundle_path = "/EIPs/pagefind/"
+EOF
+build_fixture_project "$enabled_project" "$enabled_output"
+
+search_html=$enabled_output/search/index.html
+proposal_html=$enabled_output/1559/index.html
+home_html=$enabled_output/index.html
+[ -f "$search_html" ] || die "enabled fixture did not render /search/"
+[ -f "$proposal_html" ] || die "enabled fixture did not render /1559/"
+[ -f "$home_html" ] || die "enabled fixture did not render home"
+
+assert_contains "$search_html" 'id="search-page-query"' "enabled search page must render query input"
+assert_contains "$search_html" 'id="search-page-sort"' "enabled search page must render sort control"
+assert_contains "$search_html" 'value="number-asc"' "enabled search page must expose number ascending sort"
+assert_contains "$search_html" 'value="created-desc"' "enabled search page must expose created descending sort"
+assert_contains "$search_html" 'data-search-share hidden' "enabled search page must render hidden share action"
+assert_contains "$search_html" 'data-bs-trigger="hover"' "share tooltip must be hover-triggered"
+assert_contains "$search_html" 'search-share.svg' "share action must render the share icon asset"
+assert_contains "$search_html" 'assets/css/search.css' "enabled pages must link the compiled search stylesheet"
+assert_contains "$search_html" '"enabled":true' "enabled search config must render enabled=true"
+assert_contains "$search_html" '"base_path":"/EIPs/"' "enabled search config must preserve subpath base_path"
+assert_contains "$search_html" '"bundle_path":"/EIPs/pagefind/"' "enabled search config must preserve subpath bundle_path"
+assert_matches "$search_html" 'id="search" href="(&#x2F;|/)EIPs(&#x2F;|/)search(&#x2F;|/)" data-search-trigger' "global search trigger must link to the generated search route"
+assert_not_contains "$search_html" "pagefind.js" "enabled search page must not statically import Pagefind browser assets"
+[ -f "$enabled_output/assets/css/search.css" ] || die "enabled fixture must compile search Sass to assets/css/search.css"
+
+assert_contains "$proposal_html" 'data-pagefind-meta="proposal:EIP-1559"' "proposal metadata must come from page.extra.proposal_id"
+assert_contains "$proposal_html" 'data-pagefind-meta="title[data-pagefind-value]" data-pagefind-value="EIP-1559: Fee Market Change"' "proposal title metadata must use canonical proposal id"
+assert_not_contains "$home_html" 'data-pagefind-body' "home must remain unindexed"
+assert_not_contains "$search_html" 'data-pagefind-body' "search route must remain unindexed"
+
+pagefind_log=$tmp_root/pagefind.log
+"$pagefind" --site "$enabled_output" --output-subdir pagefind --force-language en --verbose >"$pagefind_log" 2>&1
+pagefind_dir=$enabled_output/pagefind
+[ -f "$pagefind_dir/pagefind.js" ] || die "Pagefind must write pagefind.js"
+[ -f "$pagefind_dir/pagefind-entry.json" ] || die "Pagefind must write pagefind-entry.json"
+assert_pagefind_artifact "$pagefind_dir/*.pf_meta" "Pagefind must write metadata artifacts"
+assert_pagefind_artifact "$pagefind_dir/index/*.pf_index" "Pagefind must write index artifacts"
+assert_contains "$pagefind_log" 'Indexed 1 page' "Pagefind must index only the proposal page"
+
+SITE="$enabled_output" "$node" --input-type=module <<'NODE'
+import { readFile } from "node:fs/promises";
+
+const site = process.env.SITE;
+
+function fail(message) {
+  console.error(`error: ${message}`);
+  process.exit(1);
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    fail(message);
+  }
+}
+
+globalThis.fetch = async (url) => {
+  const data = await readFile(new URL(String(url)));
+  return {
+    arrayBuffer: async () =>
+      data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+    json: async () => JSON.parse(data.toString("utf8")),
+  };
+};
+
+const pagefind = await import(`file://${site}/pagefind/pagefind.js`);
+await pagefind.options({
+  basePath: `file://${site}/pagefind/`,
+  baseUrl: "/EIPs/",
+  excerptLength: 45,
+});
+await pagefind.init();
+
+const response = await pagefind.search("PhaseFiveBodyMarker", {
+  sort: { number: "asc" },
+});
+assert(response.results.length === 1, "proposal marker should return one result");
+const [proposal] = await Promise.all(response.results.map((result) => result.data()));
+assert(proposal.url === "/EIPs/1559/", "Pagefind result URL should preserve subpath baseUrl");
+assert(proposal.meta.proposal === "EIP-1559", "proposal metadata should survive indexing");
+assert(proposal.meta.title === "EIP-1559: Fee Market Change", "title metadata should survive indexing");
+assert(proposal.meta.status === "Final", "status metadata should survive indexing");
+assert(proposal.meta.type === "Standards Track", "type metadata should survive indexing");
+assert(proposal.meta.category === "Core", "category metadata should survive indexing");
+assert(proposal.meta.created === "2021-04-13", "created metadata should survive indexing");
+assert(proposal.meta.authors.includes("Alice <alice@example.com>"), "authors metadata should include display values");
+assert(proposal.excerpt.includes("PhaseFiveBodyMarker"), "Pagefind result should include highlighted excerpt text");
+
+for (const [term, label] of [
+  ["UniqueSearchMarker", "/search/"],
+  ["UniqueHomeMarker", "home"],
+]) {
+  const absent = await pagefind.search(term);
+  assert(absent.results.length === 0, `${label} should not be indexed`);
+}
+
+console.log(JSON.stringify({ indexedProposal: proposal.url }));
+NODE
+
+say "Pagefind search UI checks passed"

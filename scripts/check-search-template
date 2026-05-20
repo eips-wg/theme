@@ -1,0 +1,143 @@
+#!/bin/sh
+set -eu
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+say() {
+    printf '%s\n' "$*"
+}
+
+assert_contains() {
+    file=$1
+    expected=$2
+    message=$3
+
+    if ! grep -Fq "$expected" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_not_contains() {
+    file=$1
+    unexpected=$2
+    message=$3
+
+    if grep -Fq "$unexpected" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_not_matches() {
+    file=$1
+    unexpected_pattern=$2
+    message=$3
+
+    if grep -Eq "$unexpected_pattern" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_matches() {
+    file=$1
+    expected_pattern=$2
+    message=$3
+
+    if ! grep -Eq "$expected_pattern" "$file"; then
+        die "$message"
+    fi
+}
+
+write_fixture_project() {
+    project_dir=$1
+
+    mkdir -p "$project_dir/content" "$project_dir/themes"
+    ln -s "$theme_root" "$project_dir/themes/eips-theme"
+
+    cat >"$project_dir/config.toml" <<'EOF'
+base_url = "https://example.test/"
+title = "Search Template Fixture"
+description = "Search template fixture"
+theme = "eips-theme"
+compile_sass = false
+build_search_index = false
+taxonomies = []
+EOF
+
+    cat >"$project_dir/content/search.md" <<'EOF'
++++
+title = "Search"
+template = "search.html"
++++
+EOF
+}
+
+build_fixture_project() {
+    project_dir=$1
+    output_dir=$2
+
+    (cd "$project_dir" && "$zola" build --force -o "$output_dir" >/dev/null)
+}
+
+assert_no_pagefind_browser_assets() {
+    html_file=$1
+
+    assert_not_contains "$html_file" "pagefind.js" "search page must not import pagefind.js in Phase 2"
+    assert_not_contains "$html_file" "pagefind-ui.js" "search page must not import Pagefind UI JavaScript in Phase 2"
+    assert_not_contains "$html_file" "pagefind-modular-ui.js" "search page must not import Pagefind modular UI JavaScript in Phase 2"
+    assert_not_contains "$html_file" "pagefind-highlight.js" "search page must not import Pagefind highlight JavaScript in Phase 2"
+    assert_not_contains "$html_file" "pagefind-ui.css" "search page must not import Pagefind UI CSS in Phase 2"
+    assert_not_contains "$html_file" "pagefind-highlight.css" "search page must not import Pagefind highlight CSS in Phase 2"
+    assert_not_matches "$html_file" '<script[^>]*src=[^>]*pagefind/' "search page must not load Pagefind scripts in Phase 2"
+    assert_not_matches "$html_file" 'import\([^)]*pagefind/' "search page must not import Pagefind modules in Phase 2"
+}
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+theme_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+zola=${ZOLA:-zola}
+
+command -v "$zola" >/dev/null 2>&1 || die "zola is required on PATH"
+
+tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/eips-theme-search-template.XXXXXX")
+trap 'rm -rf "$tmp_root"' EXIT INT HUP TERM
+
+fallback_project=$tmp_root/fallback-project
+fallback_output=$tmp_root/fallback-output
+write_fixture_project "$fallback_project"
+build_fixture_project "$fallback_project" "$fallback_output"
+fallback_html=$fallback_output/search/index.html
+
+[ -f "$fallback_html" ] || die "fallback fixture did not render /search/"
+assert_contains "$fallback_html" 'id="search-page-mount"' "fallback fixture must render the search mount point"
+assert_contains "$fallback_html" '"enabled":false' "fallback search config must render enabled=false"
+assert_contains "$fallback_html" '"base_path":"/"' "fallback search config must render base_path=/"
+assert_not_contains "$fallback_html" '"bundle_path"' "fallback search config must omit bundle_path"
+assert_contains "$fallback_html" 'Search is not available for this build.' "fallback fixture must render the disabled message"
+assert_no_pagefind_browser_assets "$fallback_html"
+
+override_project=$tmp_root/override-project
+override_output=$tmp_root/override-output
+write_fixture_project "$override_project"
+mkdir -p "$override_project/data"
+cat >"$override_project/data/build_eips_search.toml" <<'EOF'
+enabled = true
+base_path = "/EIPs/"
+bundle_path = "/EIPs/pagefind/"
+EOF
+build_fixture_project "$override_project" "$override_output"
+override_html=$override_output/search/index.html
+
+[ -f "$override_html" ] || die "override fixture did not render /search/"
+assert_contains "$override_html" 'id="search-page-mount"' "override fixture must render the search mount point"
+assert_contains "$override_html" '"enabled":true' "project search config must override fallback enabled value"
+assert_contains "$override_html" '"base_path":"/EIPs/"' "project search config must override fallback base_path"
+assert_contains "$override_html" '"bundle_path":"/EIPs/pagefind/"' "project search config must render the configured bundle path"
+assert_contains "$override_html" 'data-search-enabled="true"' "override fixture must expose enabled state on the mount point"
+assert_matches "$override_html" 'data-search-base-path="(&#x2F;|/)EIPs(&#x2F;|/)"' "override fixture must expose base_path on the mount point"
+assert_matches "$override_html" 'data-search-bundle-path="(&#x2F;|/)EIPs(&#x2F;|/)pagefind(&#x2F;|/)"' "override fixture must expose bundle_path on the mount point"
+assert_not_contains "$override_html" 'Search is not available for this build.' "enabled override fixture must not render the disabled message"
+assert_no_pagefind_browser_assets "$override_html"
+
+say "search template fallback checks passed"
