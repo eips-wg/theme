@@ -22,15 +22,19 @@ generate_feeds = true
 internal_level = "warn"
 
 [markdown]
-# Whether to do syntax highlighting
-# Theme can be customised by setting the `highlight_theme` variable to a theme supported by Zola
-highlight_code = true
+bottom_footnotes = true
 
-highlight_theme = "css"
+[markdown.highlighting]
+error_on_missing_language = true
 
-highlight_themes_css = [
-    { theme = "base16-ocean-dark", filename = "assets/css/syntax-theme-dark.css" },
-    { theme = "base16-ocean-light", filename = "assets/css/syntax-theme-light.css" },
+style = "class"
+
+light_theme = "github-light"
+dark_theme = "github-dark"
+
+extra_grammars = [
+    "syntaxes/abnf/ABNF.json",
+    "syntaxes/csl-json/CSL-JSON.json",
 ]
 
 [extra.github]
