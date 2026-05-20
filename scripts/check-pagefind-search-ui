@@ -1,0 +1,695 @@
+#!/bin/sh
+set -eu
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+say() {
+    printf '%s\n' "$*"
+}
+
+assert_contains() {
+    file=$1
+    expected=$2
+    message=$3
+
+    if ! grep -Fq "$expected" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_not_contains() {
+    file=$1
+    unexpected=$2
+    message=$3
+
+    if grep -Fq "$unexpected" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_matches() {
+    file=$1
+    expected_pattern=$2
+    message=$3
+
+    if ! grep -Eq "$expected_pattern" "$file"; then
+        die "$message"
+    fi
+}
+
+assert_pagefind_artifact() {
+    path_pattern=$1
+    message=$2
+
+    if ! find "$pagefind_dir" -path "$path_pattern" -type f | grep -q .; then
+        die "$message"
+    fi
+}
+
+author_details_for() {
+    name=$1
+
+    case "$name" in
+        Alice)
+            printf '[[extra.author_details]]\nname = "Alice"\nemail = "alice@example.com"\ndisplay = "Alice <alice@example.com>"\n'
+            ;;
+        Bob)
+            printf '[[extra.author_details]]\nname = "Bob"\ngithub = "bob"\ndisplay = "Bob (@bob)"\n'
+            ;;
+        Carol)
+            printf '[[extra.author_details]]\nname = "Carol"\ngithub = "carol"\nemail = "carol@example.com"\ndisplay = "Carol (@carol) <carol@example.com>"\n'
+            ;;
+        Dan)
+            printf '[[extra.author_details]]\nname = "Dan"\ndisplay = "Dan"\n'
+            ;;
+    esac
+}
+
+write_proposal() {
+    project_dir=$1
+    number=$2
+
+    file=$(printf '%05d.md' "$number")
+    day=$(printf '%02d' "$number")
+    year=$((2021 + ((number - 1) % 5)))
+    slug=$number
+
+    case $((number % 3)) in
+        1)
+            status=Draft
+            ;;
+        2)
+            status=Review
+            ;;
+        *)
+            status=Final
+            ;;
+    esac
+
+    prefix=EIP
+    category=
+    case $(((number - 1) % 6)) in
+        0)
+            type="Standards Track"
+            category=Core
+            ;;
+        1)
+            type="Standards Track"
+            category=Networking
+            ;;
+        2)
+            type="Standards Track"
+            category=Interface
+            ;;
+        3)
+            type="Meta"
+            ;;
+        4)
+            type="Informational"
+            ;;
+        *)
+            prefix=ERC
+            type="Standards Track"
+            category=Core
+            ;;
+    esac
+
+    proposal_id=$prefix-$number
+    category_taxonomy=
+    category_extra=
+    if [ -n "$category" ]; then
+        category_taxonomy="category = [\"$category\"]"
+        category_extra="category = \"$category\""
+    fi
+    authors_toml=
+    author_details=
+    for author in Alice Bob Carol Dan; do
+        include=false
+        case "$author" in
+            Alice)
+                [ $((number % 2)) -eq 1 ] && include=true
+                ;;
+            Bob)
+                [ $((number % 2)) -eq 0 ] && include=true
+                ;;
+            Carol)
+                [ $((number % 3)) -eq 0 ] && include=true
+                ;;
+            Dan)
+                [ $((number % 4)) -eq 0 ] && include=true
+                ;;
+        esac
+        if [ "$include" = true ]; then
+            if [ -n "$authors_toml" ]; then
+                authors_toml="$authors_toml, "
+            fi
+            authors_toml="${authors_toml}\"$author\""
+            author_details="${author_details}$(author_details_for "$author")
+"
+        fi
+    done
+
+    cat >"$project_dir/content/$file" <<EOF
++++
+title = "Phase Six Proposal $number"
+description = "Phase Six Proposal $number description."
+date = $year-01-$day
+slug = "$slug"
+authors = [$authors_toml]
+template = "eip.html"
+
+[taxonomies]
+status = ["$status"]
+type = ["$type"]
+$category_taxonomy
+
+[extra]
+proposal_id = "$proposal_id"
+prefix = "$prefix"
+number = $number
+status = "$status"
+type = "$type"
+$category_extra
+discussions_to = ""
+requires = []
+withdrawal_reason = ""
+$author_details
++++
+
+## Abstract
+
+PhaseSixBodyMarker
+
+## Motivation
+
+This proposal should appear in Pagefind UI results.
+EOF
+}
+
+write_fixture_project() {
+    project_dir=$1
+    base_url=$2
+    compile_sass=${3:-false}
+    proposal_count=${4:-1}
+
+    mkdir -p "$project_dir/content" "$project_dir/themes"
+    ln -s "$theme_root" "$project_dir/themes/eips-theme"
+
+    cat >"$project_dir/config.toml" <<EOF
+base_url = "$base_url"
+title = "Pagefind Search UI Fixture"
+description = "Pagefind search UI fixture"
+theme = "eips-theme"
+compile_sass = $compile_sass
+build_search_index = false
+generate_feeds = false
+taxonomies = [
+    { name = "status" },
+    { name = "category" },
+    { name = "type" },
+]
+
+[extra.github]
+eip_repository = "https://github.com/example/eips"
+
+[extra.taxonomies.status.draft]
+tooltip = "Draft"
+
+[extra.taxonomies.status.review]
+tooltip = "Review"
+
+[extra.taxonomies.status.final]
+tooltip = "Final"
+
+[extra.taxonomies.category.core]
+tooltip = "Core"
+
+[extra.taxonomies.category.erc]
+tooltip = "ERC"
+
+[extra.taxonomies.category.networking]
+tooltip = "Networking"
+
+[extra.taxonomies.category.interface]
+tooltip = "Interface"
+
+[extra.taxonomies.type.standards-track]
+tooltip = "Standards Track"
+
+[extra.taxonomies.type.meta]
+tooltip = "Meta"
+
+[extra.taxonomies.type.informational]
+tooltip = "Informational"
+EOF
+
+    cat >"$project_dir/content/_index.md" <<'EOF'
++++
+title = "Home"
++++
+
+# Home
+
+UniqueHomeMarker
+EOF
+
+    cat >"$project_dir/content/search.md" <<'EOF'
++++
+title = "Search"
+template = "search.html"
++++
+
+UniqueSearchMarker
+EOF
+
+    proposal_number=1
+    while [ "$proposal_number" -le "$proposal_count" ]; do
+        write_proposal "$project_dir" "$proposal_number"
+        proposal_number=$((proposal_number + 1))
+    done
+}
+
+build_fixture_project() {
+    project_dir=$1
+    output_dir=$2
+
+    (cd "$project_dir" && "$zola" build --force -o "$output_dir" >/dev/null)
+}
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+theme_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+zola=${ZOLA:-zola}
+pagefind=${PAGEFIND:-pagefind}
+node=${NODE:-node}
+search_script=$theme_root/static/assets/scripts/search.mjs
+search_modules_dir=$theme_root/static/assets/scripts/search
+search_constants=$search_modules_dir/constants.mjs
+search_config=$search_modules_dir/config.mjs
+search_loader=$search_modules_dir/loader.mjs
+search_dom=$search_modules_dir/dom.mjs
+search_render=$search_modules_dir/render.mjs
+search_page=$search_modules_dir/page.mjs
+search_modal=$search_modules_dir/modal.mjs
+search_filters=$search_modules_dir/filters.mjs
+search_pagination=$search_modules_dir/pagination.mjs
+search_state=$search_modules_dir/state.mjs
+search_css=$theme_root/sass/assets/css/search.scss
+search_share_svg=$theme_root/static/assets/images/search-share.svg
+search_template=$theme_root/templates/search.html
+storage_token='local''Storage'
+pending_token='search-page-''pending'
+
+command -v "$zola" >/dev/null 2>&1 || die "zola is required on PATH"
+command -v "$pagefind" >/dev/null 2>&1 || die "pagefind is required on PATH"
+command -v "$node" >/dev/null 2>&1 || die "node is required on PATH"
+
+tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/eips-theme-pagefind-ui.XXXXXX")
+trap 'rm -rf "$tmp_root"' EXIT INT HUP TERM
+
+for source_file in \
+    "$search_script" \
+    "$search_constants" \
+    "$search_config" \
+    "$search_loader" \
+    "$search_dom" \
+    "$search_render" \
+    "$search_page" \
+    "$search_modal" \
+    "$search_filters" \
+    "$search_pagination" \
+    "$search_state"
+do
+    assert_not_contains "$source_file" "fuse.js" "Phase 6 search modules must not load Fuse"
+    assert_not_contains "$source_file" "window.Fuse" "Phase 6 search modules must not reference Fuse"
+    assert_not_contains "$source_file" "atom.xml" "Phase 6 search modules must not depend on Atom XML search data"
+    assert_not_contains "$source_file" "$storage_token" "Phase 6 must not read or write browser storage"
+    assert_not_contains "$source_file" 'document.createElement("style")' "search modules must not inject runtime CSS"
+    assert_not_contains "$source_file" "document.head.appendChild(style)" "search modules must not append runtime CSS"
+    assert_not_contains "$source_file" "addSearchStyles" "search modules must not keep runtime CSS injection hooks"
+done
+
+for source_file in \
+    "$search_script" \
+    "$search_constants" \
+    "$search_config" \
+    "$search_dom" \
+    "$search_page" \
+    "$search_modal" \
+    "$search_filters" \
+    "$search_pagination" \
+    "$search_state"
+do
+    assert_not_contains "$source_file" "pagefind.js" "Pagefind browser import must stay inside loader.mjs"
+    assert_not_contains "$source_file" "pagefind.search" "Pagefind search calls must stay inside loader.mjs"
+    assert_not_contains "$source_file" "pagefind.filters" "Pagefind filter calls must stay inside loader.mjs"
+    assert_not_contains "$source_file" "pagefind.init" "Pagefind init calls must stay inside loader.mjs"
+    assert_not_contains "$source_file" "pagefind.options" "Pagefind options calls must stay inside loader.mjs"
+    assert_not_contains "$source_file" "innerHTML" "Only render.mjs may use innerHTML for Pagefind excerpts"
+done
+
+assert_contains "$search_script" 'import { initQuickSearch } from "./search/modal.mjs";' "public search entrypoint must import quick search initializer"
+assert_contains "$search_script" 'import { initFullSearchPage } from "./search/page.mjs";' "public search entrypoint must import full search initializer"
+assert_contains "$search_loader" 'import(`${bundlePath}pagefind.js`)' "loader module must dynamically import the configured Pagefind bundle"
+assert_contains "$search_loader" "basePath: bundlePath" "loader module must pass Pagefind basePath"
+assert_contains "$search_loader" "baseUrl: searchConfig.base_path" "loader module must pass Pagefind baseUrl"
+assert_contains "$search_loader" "excerptLength: 45" "loader module must configure Pagefind excerpt length"
+assert_contains "$search_loader" "pagefind.init()" "loader module must initialize Pagefind once through the shared loader"
+assert_contains "$search_loader" "pagefind.filters()" "loader module must expose Pagefind filter loading"
+assert_contains "$search_loader" "pagefind.search(query, searchOptions)" "loader module must own Pagefind search execution"
+assert_contains "$search_render" "excerpt.innerHTML = data.excerpt" "render module must render Pagefind excerpt highlights"
+assert_contains "$search_constants" '"number-asc": { number: "asc" }' "sort constants must define proposal number ascending sort"
+assert_contains "$search_constants" '"created-desc": { created: "desc" }' "sort constants must define created date descending sort"
+assert_contains "$search_modal" "Quick Search Proposals" "quick search modal must use the final heading"
+assert_contains "$search_modal" "Enter keyword or phrase" "quick search modal must use keyword/phrase placeholder copy"
+assert_contains "$search_constants" 'key: "author"' "filter constants must define the author field"
+assert_contains "$search_state" "AUTHOR_MODE_PARAM" "state module must own author mode URL state"
+assert_contains "$search_state" "pagefindFilters.author = values" "state module must encode author AND filters as arrays"
+assert_contains "$search_filters" 'role: "combobox"' "filter module must render custom combobox controls"
+assert_contains "$search_filters" 'aria-label": `Remove ${filterLabel(field.key).toLowerCase()} ${value}`' "filter chips must have specific accessible remove labels"
+assert_contains "$search_filters" 'class: "search-filter-toggle-icon"' "filter toggles must use the chevron icon hook"
+assert_contains "$search_filters" '"Choose operator"' "author filter must label the operator control"
+assert_contains "$search_filters" '"And"' "author filter must expose the AND operator label"
+assert_contains "$search_filters" '"Or"' "author filter must expose the OR operator label"
+assert_not_contains "$search_filters" "Any author" "author operator labels must stay concise"
+assert_not_contains "$search_filters" "All authors" "author operator labels must stay concise"
+assert_contains "$search_css" "max-height: min(50vh, 28rem)" "filter dropdowns must be capped around 50vh"
+assert_contains "$search_css" "top: 4.6rem" "filter dropdowns must keep a stable overlay position"
+assert_contains "$search_css" '.search-filter-toggle[aria-expanded="true"] .search-filter-toggle-icon::before' "filter chevrons must flip when open"
+assert_contains "$search_css" ".search-result-link:hover *" "result hover must suppress broad underline styling"
+assert_contains "$search_css" ".search-result-link:hover .search-result-title" "result hover must underline only the title"
+assert_contains "$search_css" "max-height: 70vh" "search results must use a vertical scroll container"
+assert_contains "$search_css" '.search-share-button[data-share-state="success"]' "share button must expose success state styling"
+assert_contains "$search_css" '.search-share-button[data-share-state="error"]' "share button must expose error state styling"
+assert_contains "$search_page" "SHARE_SUCCESS_RESET_MS" "share button success state must reset after a short delay"
+assert_contains "$search_page" "shareButton.dataset.shareState" "share button state must be controlled by page script"
+assert_contains "$search_share_svg" '<symbol id="search-share"' "share icon asset must expose the search-share symbol"
+assert_contains "$search_share_svg" 'currentColor' "share icon asset must inherit button color"
+assert_contains "$search_constants" 'PROPOSAL_CATEGORY_KEY = "proposalCategory"' "filter constants must define the proposalCategory URL key"
+assert_contains "$search_constants" 'PROPOSAL_CATEGORY_FIELD = "proposal_category"' "filter constants must define the proposal_category Pagefind field"
+assert_contains "$search_constants" 'label: "Proposal Category"' "filter constants must define the Proposal Category field"
+assert_not_contains "$search_constants" 'key: "prefix"' "prefix must not remain a visible filter field"
+assert_not_contains "$search_constants" 'key: "type"' "type must not remain a visible filter field"
+assert_not_contains "$search_constants" 'key: "category"' "category must not remain a visible filter field"
+assert_contains "$search_constants" 'key: "author"' "filter constants must define the author field"
+assert_contains "$search_constants" 'CREATED_YEAR_FIELD = "created_year"' "filter constants must define the created year Pagefind field"
+assert_contains "$search_constants" 'CREATED_FROM_PARAM = "createdFrom"' "filter constants must define the createdFrom URL parameter"
+assert_contains "$search_constants" 'CREATED_TO_PARAM = "createdTo"' "filter constants must define the createdTo URL parameter"
+assert_contains "$search_state" "AUTHOR_MODE_PARAM" "state module must own author mode URL state"
+assert_contains "$search_state" "pagefindFilters.author = values" "state module must encode author AND filters as arrays"
+assert_contains "$search_state" "filterUrlParam(field)" "state module must use field-specific URL parameter names"
+assert_contains "$search_state" "filterPagefindField(field)" "state module must use field-specific Pagefind filter names"
+assert_contains "$search_state" "pagefindFilters[filterPagefindField(field)]" "state module must encode Proposal Category using the Pagefind field name"
+assert_contains "$search_state" "CREATED_FROM_PARAM" "state module must own createdFrom URL state"
+assert_contains "$search_state" "CREATED_TO_PARAM" "state module must own createdTo URL state"
+assert_contains "$search_state" "pagefindFilters[CREATED_YEAR_FIELD] = { any: createdYears }" "state module must encode created year filters as Pagefind OR filters"
+assert_contains "$search_state" "for (let year = from; year <= to; year += 1)" "state module must expand created year ranges inclusively"
+assert_contains "$search_state" "pushSearchStateIfNeeded" "state module must avoid duplicate clean-route history entries"
+assert_contains "$search_filters" 'role: "combobox"' "filter module must render custom combobox controls"
+assert_contains "$search_template" "search-filter-grid-loading" "search template must render loading filter shells before JS starts"
+assert_contains "$search_template" "search-filter-field-loading" "search template loading shells must use a distinct field hook"
+assert_contains "$search_template" "data-search-filter-field=\"proposalCategory\"" "search template must render the Proposal Category loading shell"
+assert_contains "$search_template" "data-search-filter-field=\"status\"" "search template must render the Status loading shell"
+assert_contains "$search_template" "data-search-filter-field=\"author\"" "search template must render the Author loading shell"
+assert_contains "$search_template" "data-search-filter-field=\"created_year\"" "search template must render the Created Date loading shell"
+assert_contains "$search_template" "Loading values..." "search template loading shells must not render fake counts"
+assert_contains "$search_template" "disabled" "search template loading shells must be disabled"
+assert_not_contains "$search_filters" "renderLoadingFilterControls" "filter module must not duplicate the template loading render path"
+assert_contains "$search_filters" "filterPagefindField(field)" "filter module must look up Pagefind filters by field config"
+assert_contains "$search_filters" 'Unexpected ${filterPagefindField(field)} filter values' "filter module must reject unexpected configured filter values"
+assert_contains "$search_filters" "CREATED_DATE_LABEL" "filter module must render the dedicated Created Date control"
+assert_contains "$search_filters" '"Year"' "created date filter must label the starting year control"
+assert_contains "$search_filters" '"To"' "created date filter must label the ending year control"
+assert_contains "$search_filters" "appendYearOptions(toSelect, false)" "Created Date To control must not render a visible Any option"
+assert_contains "$search_filters" "createdDate.to || createdDate.from" "Created Date To control must default to the selected Year"
+assert_contains "$search_filters" 'aria-label": `Remove ${filterLabel(field.key).toLowerCase()} ${value}`' "filter chips must have specific accessible remove labels"
+assert_contains "$search_filters" 'aria-label": `Remove created date ${selectedLabel}`' "created date chip must have a specific accessible remove label"
+assert_contains "$search_filters" 'class: "search-filter-toggle-icon"' "filter toggles must use the chevron icon hook"
+assert_contains "$search_filters" '"Choose operator"' "author filter must label the operator control"
+assert_contains "$search_filters" '"And"' "author filter must expose the AND operator label"
+assert_contains "$search_filters" '"Or"' "author filter must expose the OR operator label"
+assert_contains "$search_filters" "onDraftChange" "filter controls must update draft state instead of committing searches"
+assert_contains "$search_filters" "isOutsideClickExempt" "filter outside-click handling must exempt committed-on-action controls"
+assert_not_contains "$search_filters" "Any author" "author operator labels must stay concise"
+assert_not_contains "$search_filters" "All authors" "author operator labels must stay concise"
+assert_contains "$search_pagination" 'aria-current": pageNumber === page ? "page" : null' "pagination must mark the active page"
+assert_contains "$search_css" "max-height: min(50vh, 28rem)" "filter dropdowns must be capped around 50vh"
+assert_contains "$search_css" ".search-created-date-controls" "search stylesheet must style the Created Date control"
+assert_contains "$search_css" ".search-created-date-select:disabled" "Created Date To control must have a disabled visual state"
+assert_contains "$search_css" ".search-filter-input:disabled" "loading filter inputs must share disabled styling"
+assert_contains "$search_css" ".search-filter-toggle:disabled" "loading filter toggles must share disabled styling"
+assert_contains "$search_css" ".search-page-controls select:disabled" "loading sort control must share disabled styling"
+assert_contains "$search_css" ".search-page-controls select" "sort dropdown must have explicit select styling"
+assert_contains "$search_css" ".search-filter-input" "generic filter dropdown inputs must have explicit input styling"
+assert_contains "$search_css" "background: var(--bs-body-bg, #fff)" "generic filter dropdown inputs must match Created Date select background"
+assert_contains "$search_css" "cursor: pointer;" "Created Date selects must use a pointer cursor when enabled"
+assert_contains "$search_css" "top: 4.6rem" "filter dropdowns must keep a stable overlay position"
+assert_contains "$search_css" '.search-filter-toggle[aria-expanded="true"] .search-filter-toggle-icon::before' "filter chevrons must flip when open"
+assert_contains "$search_css" "[data-search-page-submit]" "Search button must keep the highlighted action styling"
+assert_not_contains "$search_css" ".$pending_token" "draft state must not render a separate pending status style"
+assert_contains "$search_css" ".search-result-link:hover *" "result hover must suppress broad underline styling"
+assert_contains "$search_css" ".search-result-link:hover .search-result-title" "result hover must underline only the title"
+assert_contains "$search_css" "max-height: 70vh" "search results must use a vertical scroll container"
+assert_contains "$search_page" "let draftState = null" "full search page must keep draft state separate from committed state"
+assert_not_contains "$search_page" "renderLoadingFilterControls(filterMount)" "full search page must keep initial loading shells in the template"
+assert_contains "$search_page" "sortControl.disabled = true" "sort control must be disabled while Pagefind filter data loads"
+assert_contains "$search_page" "pendingSearchSubmit" "full search page must capture Search submissions before hydration"
+assert_contains "$search_page" "loadingQueryEdited" "full search page must preserve query edits made before hydration"
+assert_contains "$search_page" 'new URLSearchParams(window.location.search).get("q")' "full search page may prefill q before filter hydration without parsing filters"
+assert_contains "$search_page" "commitDraftSearch" "full search page must commit query and filters through the Search action"
+assert_contains "$search_page" "filterControls?.commitOpen()" "Search action must accept any open staged dropdown before committing"
+assert_contains "$search_page" "hasActiveSearchState(committedState)" "sort and page actions must operate on committed active searches"
+assert_not_contains "$search_page" "commitFilters" "filter changes must not immediately commit URL/search state"
+
+disabled_project=$tmp_root/disabled-project
+disabled_output=$tmp_root/disabled-output
+write_fixture_project "$disabled_project" "https://example.test/" false 1
+build_fixture_project "$disabled_project" "$disabled_output"
+disabled_html=$disabled_output/search/index.html
+[ -f "$disabled_html" ] || die "disabled fixture did not render /search/"
+assert_contains "$disabled_html" 'id="search-page-query"' "disabled search page must render query input"
+assert_contains "$disabled_html" 'data-search-page-filters' "disabled search page must render filter mount"
+assert_contains "$disabled_html" 'data-search-page-pagination' "disabled search page must render pagination mount"
+assert_not_contains "$disabled_html" "data-$pending_token" "disabled search page must not render pending-change status mount"
+assert_contains "$disabled_html" 'Search is not available for this build.' "disabled search page must show disabled message"
+assert_contains "$disabled_html" '"enabled":false' "disabled search config must render enabled=false"
+assert_not_contains "$disabled_html" '"bundle_path"' "disabled search config must omit bundle_path"
+assert_contains "$disabled_html" 'data-search-share hidden' "disabled search page must not show share action"
+assert_not_contains "$disabled_html" "pagefind.js" "disabled search page must not import Pagefind browser assets"
+
+enabled_project=$tmp_root/enabled-project
+enabled_output=$tmp_root/enabled-output
+write_fixture_project "$enabled_project" "https://example.test/EIPs/" true 30
+mkdir -p "$enabled_project/data"
+cat >"$enabled_project/data/build_eips_search.toml" <<'EOF'
+enabled = true
+base_path = "/EIPs/"
+bundle_path = "/EIPs/pagefind/"
+EOF
+build_fixture_project "$enabled_project" "$enabled_output"
+
+search_html=$enabled_output/search/index.html
+proposal_html=$enabled_output/1/index.html
+home_html=$enabled_output/index.html
+[ -f "$search_html" ] || die "enabled fixture did not render /search/"
+[ -f "$proposal_html" ] || die "enabled fixture did not render /1/"
+[ -f "$home_html" ] || die "enabled fixture did not render home"
+
+assert_contains "$search_html" 'id="search-page-query"' "enabled search page must render query input"
+assert_contains "$search_html" 'id="search-page-sort"' "enabled search page must render sort control"
+assert_contains "$search_html" 'data-search-page-filters' "enabled search page must render filter mount"
+assert_contains "$search_html" 'search-filter-grid-loading' "enabled search page must render filter loading shells in initial HTML"
+assert_contains "$search_html" 'data-search-filter-field="proposalCategory"' "enabled search page must render Proposal Category loading shell"
+assert_contains "$search_html" 'data-search-filter-field="status"' "enabled search page must render Status loading shell"
+assert_contains "$search_html" 'data-search-filter-field="author"' "enabled search page must render Author loading shell"
+assert_contains "$search_html" 'data-search-filter-field="created_year"' "enabled search page must render Created Date loading shell"
+assert_contains "$search_html" 'Loading values...' "enabled search page loading shells must avoid fake counts"
+assert_contains "$search_html" 'data-search-page-pagination' "enabled search page must render pagination mount"
+assert_not_contains "$search_html" "data-$pending_token" "enabled search page must not render pending-change status mount"
+assert_contains "$search_html" 'value="number-asc"' "enabled search page must expose number ascending sort"
+assert_contains "$search_html" 'value="created-desc"' "enabled search page must expose created descending sort"
+assert_contains "$search_html" 'data-search-share' "enabled search page must render share action"
+assert_not_contains "$search_html" 'data-search-share hidden' "enabled search page must keep share action visible by default"
+assert_contains "$search_html" 'data-bs-trigger="hover"' "share tooltip must be hover-triggered"
+assert_contains "$search_html" 'search-share.svg' "share action must render the share icon asset"
+assert_contains "$search_html" 'assets/css/search.css' "enabled pages must link the compiled search stylesheet"
+assert_contains "$search_html" '"enabled":true' "enabled search config must render enabled=true"
+assert_contains "$search_html" '"base_path":"/EIPs/"' "enabled search config must preserve subpath base_path"
+assert_contains "$search_html" '"bundle_path":"/EIPs/pagefind/"' "enabled search config must preserve subpath bundle_path"
+assert_matches "$search_html" 'id="search" href="(&#x2F;|/)EIPs(&#x2F;|/)search(&#x2F;|/)" data-search-trigger' "global search trigger must link to the generated search route"
+assert_not_contains "$search_html" "pagefind.js" "enabled search page must not statically import Pagefind browser assets"
+[ -f "$enabled_output/assets/css/search.css" ] || die "enabled fixture must compile search Sass to assets/css/search.css"
+
+assert_contains "$proposal_html" 'data-pagefind-meta="proposal:EIP-1"' "proposal metadata must come from page.extra.proposal_id"
+assert_contains "$proposal_html" 'data-pagefind-meta="title[data-pagefind-value]" data-pagefind-value="EIP-1: Phase Six Proposal 1"' "proposal title metadata must use canonical proposal id"
+assert_contains "$proposal_html" 'data-pagefind-filter="proposal_category:Core"' "proposal page must expose the derived proposal category filter"
+assert_not_contains "$proposal_html" 'data-pagefind-filter="prefix:' "proposal page must not expose prefix as a filter"
+assert_not_contains "$proposal_html" 'data-pagefind-filter="type:' "proposal page must not expose type as a filter"
+assert_not_contains "$proposal_html" 'data-pagefind-filter="category:' "proposal page must not expose category as a filter"
+assert_contains "$proposal_html" 'data-pagefind-filter="created_year:2021"' "proposal page must expose the created year filter"
+assert_not_contains "$home_html" 'data-pagefind-body' "home must remain unindexed"
+assert_not_contains "$search_html" 'data-pagefind-body' "search route must remain unindexed"
+if grep -R 'data-pagefind-filter="\(prefix\|type\|category\):' "$enabled_output" >/dev/null; then
+    die "prefix, type, and category must not render as Pagefind filters"
+fi
+if grep -R 'data-pagefind-filter="proposal_category:Other"' "$enabled_output" >/dev/null; then
+    die "proposal_category must not render Other"
+fi
+for standards_track_html in $(grep -Rl 'data-pagefind-meta="type:Standards Track"' "$enabled_output" || true); do
+    proposal_category_count=$(
+        grep -Eo 'data-pagefind-filter="proposal_category:(ERC|Core|Networking|Interface|Meta|Informational)"' "$standards_track_html" \
+            | wc -l \
+            | tr -d ' '
+    )
+    if [ "$proposal_category_count" != "1" ]; then
+        die "Standards Track fixture page must render exactly one valid proposal_category filter: $standards_track_html"
+    fi
+done
+
+pagefind_log=$tmp_root/pagefind.log
+"$pagefind" --site "$enabled_output" --output-subdir pagefind --force-language en --verbose >"$pagefind_log" 2>&1
+pagefind_dir=$enabled_output/pagefind
+[ -f "$pagefind_dir/pagefind.js" ] || die "Pagefind must write pagefind.js"
+[ -f "$pagefind_dir/pagefind-entry.json" ] || die "Pagefind must write pagefind-entry.json"
+assert_pagefind_artifact "$pagefind_dir/*.pf_meta" "Pagefind must write metadata artifacts"
+assert_pagefind_artifact "$pagefind_dir/index/*.pf_index" "Pagefind must write index artifacts"
+assert_contains "$pagefind_log" 'Indexed 30 pages' "Pagefind must index only the 30 proposal pages"
+
+SITE="$enabled_output" "$node" --input-type=module <<'NODE'
+import { readFile } from "node:fs/promises";
+
+const site = process.env.SITE;
+
+function fail(message) {
+  console.error(`error: ${message}`);
+  process.exit(1);
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    fail(message);
+  }
+}
+
+globalThis.fetch = async (url) => {
+  const data = await readFile(new URL(String(url)));
+  return {
+    arrayBuffer: async () =>
+      data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+    json: async () => JSON.parse(data.toString("utf8")),
+  };
+};
+
+const pagefind = await import(`file://${site}/pagefind/pagefind.js`);
+await pagefind.options({
+  basePath: `file://${site}/pagefind/`,
+  baseUrl: "/EIPs/",
+  excerptLength: 45,
+});
+await pagefind.init();
+
+const filters = await pagefind.filters();
+assert(!("prefix" in filters), "prefix must not be a Pagefind filter field");
+assert(!("type" in filters), "type must not be a Pagefind filter field");
+assert(!("category" in filters), "category must not be a Pagefind filter field");
+const allowedProposalCategories = ["ERC", "Core", "Networking", "Interface", "Meta", "Informational"];
+assert(filters.proposal_category !== undefined, "proposal_category should come from Pagefind filters");
+for (const value of allowedProposalCategories) {
+  assert(filters.proposal_category[value] === 5, `proposal_category ${value} count should come from Pagefind filters`);
+}
+for (const value of Object.keys(filters.proposal_category)) {
+  assert(allowedProposalCategories.includes(value), `unexpected proposal_category filter value ${value}`);
+}
+assert(!("Other" in filters.proposal_category), "proposal_category must not expose Other");
+assert(filters.status.Draft === 10, "status Draft count should come from Pagefind filters");
+assert(filters.status.Review === 10, "status Review count should come from Pagefind filters");
+assert(filters.status.Final === 10, "status Final count should come from Pagefind filters");
+assert(filters.created_year["2021"] === 6, "created year 2021 count should come from Pagefind filters");
+assert(filters.created_year["2022"] === 6, "created year 2022 count should come from Pagefind filters");
+assert(filters.created_year["2023"] === 6, "created year 2023 count should come from Pagefind filters");
+assert(filters.created_year["2024"] === 6, "created year 2024 count should come from Pagefind filters");
+assert(filters.created_year["2025"] === 6, "created year 2025 count should come from Pagefind filters");
+assert(filters.author.Alice === 15, "author Alice count should come from Pagefind filters");
+assert(filters.author.Bob === 15, "author Bob count should come from Pagefind filters");
+assert(filters.author.Carol === 10, "author Carol count should come from Pagefind filters");
+assert(filters.author.Dan === 7, "author Dan count should come from Pagefind filters");
+
+const allResults = await pagefind.search("PhaseSixBodyMarker", {
+  sort: { number: "asc" },
+});
+assert(allResults.results.length === 30, "query should find all 30 proposals");
+const first = await allResults.results[0].data();
+assert(first.url === "/EIPs/1/", "Pagefind result URL should preserve subpath baseUrl");
+assert(first.meta.proposal === "EIP-1", "proposal metadata should survive indexing");
+assert(first.meta.title === "EIP-1: Phase Six Proposal 1", "title metadata should survive indexing");
+assert(first.meta.status === "Draft", "status metadata should survive indexing");
+assert(first.meta.type === "Standards Track", "type metadata should survive indexing");
+assert(first.meta.category === "Core", "category metadata should survive indexing");
+assert(first.meta.created === "2021-01-01", "created metadata should survive indexing");
+assert(first.meta.authors.includes("Alice <alice@example.com>"), "authors metadata should include display values");
+assert(first.excerpt.includes("PhaseSixBodyMarker"), "Pagefind result should include highlighted excerpt text");
+
+const filterOnly = await pagefind.search(null, {
+  filters: { status: { any: ["Draft"] } },
+});
+assert(filterOnly.results.length === 10, "filter-only search should use null query and status filter");
+
+const statusAny = await pagefind.search(null, {
+  filters: { status: { any: ["Draft", "Review"] } },
+});
+assert(statusAny.results.length === 20, "single-value fields should encode multiple values as OR");
+
+const authorAll = await pagefind.search(null, {
+  filters: { author: ["Alice", "Carol"] },
+});
+assert(authorAll.results.length === 5, "author all mode should encode AND as an array");
+
+const authorAny = await pagefind.search(null, {
+  filters: { author: { any: ["Alice", "Carol"] } },
+});
+assert(authorAny.results.length === 20, "author any mode should encode OR with any");
+
+const proposalCategorySorted = await pagefind.search(null, {
+  filters: { proposal_category: { any: ["Core"] } },
+  sort: { number: "desc" },
+});
+assert(proposalCategorySorted.results.length === 5, "proposal category filter should support sorted filter-only search");
+const [highestCore] = await Promise.all(proposalCategorySorted.results.slice(0, 1).map((result) => result.data()));
+assert(highestCore.meta.proposal === "EIP-25", "sorted proposal category search should preserve sort order");
+
+const createdSingle = await pagefind.search(null, {
+  filters: { created_year: { any: ["2021"] } },
+});
+assert(createdSingle.results.length === 6, "created year single filter should find matching proposals");
+
+const createdRange = await pagefind.search(null, {
+  filters: { created_year: { any: ["2021", "2022", "2023"] } },
+});
+assert(createdRange.results.length === 18, "created year range filter should expand to inclusive OR years");
+
+for (const [term, label] of [
+  ["UniqueSearchMarker", "/search/"],
+  ["UniqueHomeMarker", "home"],
+]) {
+  const absent = await pagefind.search(term);
+  assert(absent.results.length === 0, `${label} should not be indexed`);
+}
+
+console.log(JSON.stringify({
+  filterFields: Object.keys(filters).sort(),
+  resultCounts: {
+    all: allResults.results.length,
+    filterOnlyDraft: filterOnly.results.length,
+    statusAnyDraftReview: statusAny.results.length,
+    authorAllAliceCarol: authorAll.results.length,
+    authorAnyAliceCarol: authorAny.results.length,
+    proposalCategoryCore: proposalCategorySorted.results.length,
+    createdYear2021: createdSingle.results.length,
+    createdYear2021To2023: createdRange.results.length,
+  },
+}));
+NODE
+
+say "Pagefind search UI checks passed"

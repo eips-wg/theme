@@ -1,7 +1,27 @@
 {%- macro eip_number(page) -%}
 {%- if page.extra.category and page.extra.category == "ERC" -%}
-	ERC-
+		ERC-
 {%- else -%}
-	EIP-
+		EIP-
 {%- endif -%}{{- page.extra.number -}}
 {%- endmacro eip_number -%}
+
+{%- macro homepage_badges(badges) -%}
+{%- if badges -%}
+<div class="homepage-badges" aria-label="Homepage links">
+	{%- for badge in badges -%}
+	<a class="homepage-badge-link" href="{{ badge.href }}">
+		{%- if badge.image -%}
+		<img
+			src="{{ badge.image }}"
+			alt="{{ badge.alt | default(value=badge.label | default(value='Homepage badge')) }}"
+			loading="lazy"
+		/>
+		{%- else -%}
+		<span class="badge text-bg-secondary">{{ badge.label }}</span>
+		{%- endif -%}
+	</a>
+	{%- endfor -%}
+</div>
+{%- endif -%}
+{%- endmacro homepage_badges -%}

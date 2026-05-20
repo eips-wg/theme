@@ -1,3 +1,7 @@
+{%- set_global build_eips_search = load_data(path="data/build_eips_search.toml", required=false) -%}
+{%- if not build_eips_search -%}
+{%- set_global build_eips_search = config.extra.search -%}
+{%- endif -%}
 <!doctype html>
 <html lang="{{ lang }}">
 	<head
@@ -85,6 +89,10 @@
 			rel="stylesheet"
 			href="{{ get_url(path='/assets/css/override.css', trailing_slash=false) }}"
 		/>
+		<link
+			rel="stylesheet"
+			href="{{ get_url(path='/assets/css/search.css', trailing_slash=false) }}"
+		/>
 		<script
 			src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
 			integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
@@ -127,6 +135,7 @@
 			integrity="sha384-/1zmJ1mBdfKIOnwPxpdG6yaRrxP6qu3eVYm0cz2nOx+AcL4d3AqEFrwcqGZVVroG"
 			crossorigin="anonymous"
 		></script>
+		<script type="application/json" id="build-eips-global-search-config">{{ build_eips_search | json_encode | safe }}</script>
 		<script defer async src="{{ get_url(path='/assets/scripts/search.mjs', trailing_slash=false) }}" type="module"></script>
 	</head>
 	<body>
@@ -175,7 +184,10 @@
 							</a>
 							{% endfor %}
 							{% endif %}
-							<a class="page-link" id="search" href="#">
+							<a class="page-link col" href="{{ build_eips_search.base_path }}search/">
+								Search
+							</a>
+							<a class="page-link" id="search" href="{{ build_eips_search.base_path }}search/" data-search-trigger>
 								<div>Search...</div>
 							</a>
 						</span>
