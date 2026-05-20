@@ -14,6 +14,7 @@ status = ["Final"]
 type = ["Standards Track"]
 
 [extra]
+proposal_id = "ERC-3475"
 requires = ["@/00020/index.md", "@/00721.md", "@/01155.md"]
 discussions_to = "https://ethereum-magicians.org/t/eip-3475-multiple-callable-bonds-standard/8691"
 type = "Standards Track"
