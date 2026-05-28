@@ -128,6 +128,7 @@
 			crossorigin="anonymous"
 		></script>
 		<script defer async src="{{ get_url(path='/assets/scripts/search.mjs', trailing_slash=false) }}" type="module"></script>
+		<script defer src="{{ get_url(path='/assets/scripts/nav-ui.mjs', trailing_slash=false) }}" type="module"></script>
 	</head>
 	<body>
 		{% block nav %}
@@ -137,8 +138,15 @@
 					class="site-title"
 					rel="author"
 					href="{{ get_url(path='/', trailing_slash=false) }}"
-					>{{ config.title }}</a
 				>
+					<img
+						class="site-logomark"
+						src="{{ get_url(path='/assets/images/logomark.svg') }}"
+						alt=""
+						aria-hidden="true"
+					/>
+					<span>{{ config.title }}</span>
+				</a>
 				{%- if config.taxonomies -%}
 				<nav class="site-nav d-flex">
 					<input aria-label="Toggle Navigation" type="checkbox" id="nav-trigger" class="nav-trigger" />
@@ -152,6 +160,9 @@
 
 					<div class="trigger row p-2">
 						<span>
+							<a class="page-link col" href="{{ get_url(path='/', trailing_slash=false) }}">
+								Home
+							</a>
 							{% if config.extra.banner_taxonomies %}
 							{% for pair in config.extra.banner_taxonomies %}
 							{% set taxonomy_detail = get_taxonomy(kind=pair.name) %}
@@ -175,9 +186,13 @@
 							</a>
 							{% endfor %}
 							{% endif %}
-							<a class="page-link" id="search" href="#">
-								<div>Search...</div>
+							<a class="page-link nav-ui-search-link" id="search" href="#" aria-label="Search">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+									<circle cx="11" cy="11" r="7"></circle>
+									<path d="M20 20l-3.5-3.5"></path>
+								</svg>
 							</a>
+							{% block desktop_nav_tools %}{% endblock desktop_nav_tools %}
 						</span>
 					</div>
 				</nav>
@@ -185,6 +200,50 @@
 			</div>
 		</header>
 		{% endblock nav %}
+
+		<nav class="nav-ui-bottom-bar" aria-label="Page tools">
+			<div class="nav-ui-bottom-inner">
+				<button type="button" class="nav-ui-icon-button nav-ui-top-button" data-nav-ui-scroll-top aria-label="Back to top" disabled>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M12 19V5"></path>
+						<path d="M5 12l7-7 7 7"></path>
+					</svg>
+				</button>
+				{% block mobile_toc_button %}
+				<span class="nav-ui-icon-button is-unavailable" aria-hidden="true">
+					<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" aria-hidden="true">
+						<path d="M4.5 7.5c2.9-1.3 5.8-1.5 9-0.7v15.7c-3-0.8-5.9-0.5-9 0.9zM25.5 7.5c-2.9-1.3-5.8-1.5-9-0.7v15.7c3-0.8 5.9-0.5 9 0.9zM15 6.8v16.3"></path>
+					</svg>
+				</span>
+				{% endblock mobile_toc_button %}
+				<button type="button" class="nav-ui-icon-button" data-nav-ui-open="search" aria-label="Search">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+						<circle cx="11" cy="11" r="7"></circle>
+						<path d="M20 20l-3.5-3.5"></path>
+					</svg>
+				</button>
+				<button type="button" class="nav-ui-icon-button" data-nav-ui-open="menu" aria-label="Open menu">
+					<svg viewBox="0 0 18 15" fill="currentColor" aria-hidden="true">
+						<path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484S0.665,0,1.484,0h15.032C17.335,0,18,0.665,18,1.484zM18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516s0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516zM18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516s0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516z"></path>
+					</svg>
+				</button>
+			</div>
+		</nav>
+
+		<div class="nav-ui-overlay" aria-hidden="true">
+			<section class="nav-ui-modal" role="dialog" aria-modal="true" aria-labelledby="nav-ui-modal-title">
+				<header class="nav-ui-modal-header">
+					<h2 class="nav-ui-modal-title" id="nav-ui-modal-title"></h2>
+					<button type="button" class="nav-ui-icon-button nav-ui-modal-close" aria-label="Close">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+							<path d="M6 6l12 12"></path>
+							<path d="M18 6L6 18"></path>
+						</svg>
+					</button>
+				</header>
+				<div class="nav-ui-modal-body"></div>
+			</section>
+		</div>
 
 		<main class="page-content" aria-label="Content">
 			<div class="wrapper">

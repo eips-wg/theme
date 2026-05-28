@@ -12,6 +12,20 @@ $content-width: 1152px;
   }
 }
 
+.site-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.site-logomark {
+  display: block;
+  width: auto;
+  height: 0.78em;
+  flex: 0 0 auto;
+  transform: translateY(0.03em);
+}
+
 .page-link.active {
   font-weight: bold;
 }
@@ -201,6 +215,8 @@ pre,code {
     text-align: right;
     opacity: 0.8;
 }
+
+@import "nav-ui";
 
 @media print {
 
